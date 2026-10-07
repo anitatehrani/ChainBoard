@@ -55,6 +55,68 @@
 .tx-id { font-size: var(--fs-xs); color: var(--text-dim); }
 .timeline-meta { font-size: var(--fs-xs); }
 
+/* ── redesigned task page: header card, then files, comments, activity ── */
+.tp { display: flex; flex-direction: column; gap: var(--s-4); }
+.tp > .card { margin: 0; }
+.t-muted { color: var(--text-faint); }
+
+.t-hero { border-left: 4px solid var(--st-todo); }
+.t-hero[data-status='in-progress'] { border-left-color: var(--st-progress); }
+.t-hero[data-status='done'] { border-left-color: var(--st-done); }
+.t-hero[data-state='overdue'] { border-left-color: var(--st-overdue); }
+.t-hero[data-state='archived'] { border-left-style: dashed; }
+.t-hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; margin-bottom: var(--s-3); }
+.t-title { margin: 0; flex: 1 1 260px; font-size: 24px; font-weight: var(--fw-bold); letter-spacing: -0.02em; line-height: var(--lh-tight); overflow-wrap: anywhere; }
+.t-hero[data-state='done'] .t-title { color: var(--text-dim); }
+.t-hero .edit-title-input { flex: 1 1 260px; min-height: 44px; font-size: var(--fs-lg); }
+.t-hero .status-buttons { margin: 0 0 var(--s-4); }
+.t-hero .status-btn.active { background: color-mix(in srgb, currentColor 12%, transparent); font-weight: var(--fw-semibold); }
+
+.t-desc { margin: 0 0 var(--s-4); max-width: 75ch; color: var(--text); font-size: var(--fs-md); line-height: var(--lh-body); white-space: pre-wrap; overflow-wrap: anywhere; }
+.t-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--s-3); margin: 0 0 var(--s-4); padding: var(--s-4); background: color-mix(in srgb, var(--text) 3%, transparent); border: 1px solid var(--border); border-radius: var(--r-lg); }
+.t-facts dt { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .04em; color: var(--text-faint); margin-bottom: var(--s-1); }
+.t-facts dd { margin: 0; font-size: var(--fs-sm); color: var(--text); min-height: 24px; display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+.t-person { display: inline-flex; align-items: center; gap: var(--s-2); }
+.t-id { overflow-wrap: anywhere; }
+.t-avatar { display: inline-grid; place-items: center; border-radius: 50%; color: #fff; font-weight: var(--fw-bold); flex: none; }
+
+.t-edit { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); margin-bottom: var(--s-4); }
+.t-edit .nt-wide { grid-column: 1 / -1; }
+@media (max-width: 640px) { .t-edit { grid-template-columns: 1fr; } }
+
+.t-assign { padding-top: var(--s-3); border-top: 1px solid var(--border); }
+.t-assign-label { display: block; font-size: var(--fs-xs); color: var(--text-dim); margin-bottom: var(--s-2); }
+.t-assign .assign-row { display: flex; gap: var(--s-2); align-items: center; flex-wrap: wrap; max-width: 520px; }
+.t-assign .assign-row .select { flex: 1 1 220px; }
+
+.dropzone {
+  flex: 1; min-height: var(--tap); display: flex; align-items: center; gap: var(--s-3);
+  padding: 0 var(--s-4); cursor: pointer;
+  border: 1px dashed var(--border); border-radius: var(--r-md); color: var(--text-dim); font-size: var(--fs-sm);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dropzone:hover { border-color: var(--accent); color: var(--text); }
+.file-input:focus-visible + .dropzone { box-shadow: var(--focus-ring); }
+.file-upload .file-input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.file-upload { position: relative; display: flex; gap: var(--s-3); align-items: stretch; }
+.t-files { list-style: none; margin: var(--s-3) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.t-files .attachment-item { display: flex; align-items: center; justify-content: space-between; padding: var(--s-2) var(--s-4); }
+
+.t-comments { list-style: none; margin: 0 0 var(--s-4); padding: 0; display: flex; flex-direction: column; gap: var(--s-3); }
+.t-comment { display: flex; gap: var(--s-3); align-items: flex-start; }
+.t-comment-body { flex: 1; min-width: 0; padding: var(--s-2) var(--s-4); background: color-mix(in srgb, var(--text) 4%, transparent); border: 1px solid var(--border); border-radius: var(--r-lg); border-top-left-radius: var(--r-sm); }
+.t-comment-body .comment-author { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--text); }
+.t-comment-body p { margin: 2px 0 0; font-size: var(--fs-sm); line-height: var(--lh-body); color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.tp .comment-form { display: flex; align-items: center; gap: var(--s-3); }
+.tp .comment-form input { flex: 1; min-width: 0; }
+
+.t-empty { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); text-align: center; padding: var(--s-6) var(--s-4); }
+.t-empty p { margin: 0 0 var(--s-2); color: var(--text-dim); font-size: var(--fs-sm); }
+.t-empty .btn { min-height: var(--tap); padding: 0 var(--s-5); }
+.t-byid summary { cursor: pointer; font-weight: var(--fw-medium); color: var(--text-dim); min-height: 32px; display: flex; align-items: center; }
+.t-byid summary:hover { color: var(--text); }
+.t-byid[open] summary { margin-bottom: var(--s-2); color: var(--text); }
+
 @media (max-width: 560px) {
   .task-detail { padding: var(--s-4); }
   .status-btn { flex: 1 1 100%; }
