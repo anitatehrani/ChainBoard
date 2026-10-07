@@ -1,0 +1,70 @@
+.dp { position: relative; display: inline-block; width: 100%; min-width: 0; }
+
+.dp-trigger {
+  width: 100%; min-height: 40px;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
+  padding: 0 var(--s-3);
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  font: inherit; font-size: var(--fs-md); text-align: left; cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+.dp-trigger:hover:not(:disabled) { border-color: var(--text-faint); }
+.dp-trigger:focus-visible, .dp.is-open .dp-trigger {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.dp-trigger:disabled { opacity: .55; cursor: not-allowed; }
+.dp-trigger.is-placeholder .dp-value { color: var(--text-dim); }
+.dp-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-icon { flex: none; color: var(--text-dim); }
+
+.dp-pop {
+  position: absolute; z-index: 50; top: calc(100% + 6px); left: 0;
+  width: 296px; max-width: calc(100vw - 32px);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
+  padding: var(--s-3);
+  animation: dp-in var(--t-base) var(--ease);
+}
+@keyframes dp-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.dp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-2); }
+.dp-title { font-weight: var(--fw-semibold); font-size: var(--fs-md); color: var(--text); }
+.dp-nav {
+  width: 32px; height: 32px; display: grid; place-items: center;
+  background: transparent; color: var(--text-dim);
+  border: 1px solid transparent; border-radius: var(--r-md); cursor: pointer;
+}
+.dp-nav:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
+.dp-nav:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.dp-dow { text-align: center; font-size: var(--fs-xs); color: var(--text-faint); padding: var(--s-1) 0 var(--s-2); }
+.dp-day {
+  aspect-ratio: 1; display: grid; place-items: center;
+  background: transparent; color: var(--text);
+  border: 1px solid transparent; border-radius: var(--r-md);
+  font: inherit; font-size: var(--fs-sm); cursor: pointer;
+  transition: background var(--t-fast) var(--ease);
+}
+.dp-day:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.dp-day:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.dp-day.is-outside { color: var(--text-faint); }
+.dp-day.is-today { border-color: var(--accent); }
+.dp-day.is-selected { background: var(--accent); color: #fff; font-weight: var(--fw-semibold); }
+.dp-day.is-selected:hover { background: var(--accent-hover); }
+
+.dp-foot { display: flex; justify-content: space-between; margin-top: var(--s-2); padding-top: var(--s-2); border-top: 1px solid var(--border); }
+.dp-link {
+  background: transparent; border: 0; padding: var(--s-1) var(--s-2); border-radius: var(--r-sm);
+  color: var(--accent-hover); font: inherit; font-size: var(--fs-sm); cursor: pointer;
+}
+.dp-link:hover:not(:disabled) { text-decoration: underline; }
+.dp-link:disabled { color: var(--text-faint); cursor: default; }
+.dp-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* sizing inside the layouts that used to size a native date input */
+.form-row .dp { flex: 1; min-width: 180px; width: auto; }
+
+@media (prefers-reduced-motion: reduce) { .dp-pop { animation: none; } }

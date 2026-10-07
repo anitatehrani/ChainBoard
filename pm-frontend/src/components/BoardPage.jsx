@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { cardState, cardAriaLabel, filterTasks, groupByColumn, todayISO } from '../boardLogic'
 import { canCreateTask } from '../permissionLogic'
 import Select from './Select'
+import DatePicker from './DatePicker'
 import './board.css'
 
 // Old (pre-role) projects stored members as plain ID strings; new ones store
@@ -71,8 +72,8 @@ function BoardPage({
               { value: 'medium', label: 'Medium priority' },
               { value: 'high', label: 'High priority' }
             ]} />
-          <input type="date" title="Due date (optional)" value={tForm.dueDate}
-            onChange={e => setTForm({ ...tForm, dueDate: e.target.value })} />
+          <DatePicker ariaLabel="Due date" title="Due date (optional)" value={tForm.dueDate}
+            onChange={v => setTForm({ ...tForm, dueDate: v })} />
           <button type="submit" className="btn btn-success"
             disabled={isArchived || !canCreateTask(selectedProject, currentUser.email).allowed}
             title={canCreateTask(selectedProject, currentUser.email).reason}>Create Task</button>

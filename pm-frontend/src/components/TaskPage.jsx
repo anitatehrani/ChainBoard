@@ -3,6 +3,7 @@ import { isAllowedMove, auditEntries } from '../taskLogic'
 import { canWorkOnTask, canAssignTask, canArchiveTask } from '../permissionLogic'
 import AuditVerifier from './AuditVerifier'
 import Select from './Select'
+import DatePicker from './DatePicker'
 import './task.css'
 
 const PRIORITY_OPTIONS = [
@@ -95,11 +96,11 @@ function TaskPage({
                 onChange={v => setEditMeta({ ...editMeta, priority: v })}
                 options={PRIORITY_OPTIONS} />
 
-              <label className="field-label">
+              <div className="field-label">
                 Due date
-                <input type="date" value={editMeta.dueDate}
-                  onChange={e => setEditMeta({ ...editMeta, dueDate: e.target.value })} />
-              </label>
+                <DatePicker ariaLabel="Due date" value={editMeta.dueDate}
+                  onChange={v => setEditMeta({ ...editMeta, dueDate: v })} />
+              </div>
               <div className="edit-meta-actions">
                 <button onClick={saveMeta} className="btn btn-primary sm">Save Changes</button>
                 <button onClick={() => setEditMeta(null)} className="btn btn-secondary sm">Cancel</button>

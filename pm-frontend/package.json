@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "test": "node --test src/boardLogic.test.js src/taskLogic.test.js src/dashboardLogic.test.js src/projectLogic.test.js src/authLogic.test.js src/navLogic.test.js src/profileLogic.test.js src/settingsLogic.test.js src/refreshLogic.test.js src/permissionLogic.test.js src/auditLogic.test.js src/selectLogic.test.js"
+    "test": "node --test src/boardLogic.test.js src/taskLogic.test.js src/dashboardLogic.test.js src/projectLogic.test.js src/authLogic.test.js src/navLogic.test.js src/profileLogic.test.js src/settingsLogic.test.js src/refreshLogic.test.js src/permissionLogic.test.js src/auditLogic.test.js src/selectLogic.test.js src/dateLogic.test.js"
   },
   "dependencies": {
     "object-assign": "^4.1.1",
