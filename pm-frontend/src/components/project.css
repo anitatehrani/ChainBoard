@@ -1,0 +1,38 @@
+/* Project page. Tokens from design/tokens.css and theme variables only. */
+
+.project-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; margin: var(--s-3) 0; }
+.project-head .btn { min-height: var(--tap); }
+.meta-chip { border-radius: var(--r-pill); font-size: var(--fs-xs); }
+
+.state-tag {
+  display: inline-block; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  padding: 2px var(--s-2); border-radius: var(--r-pill);
+  color: var(--success); background: var(--overlay);
+}
+.state-tag[data-state='archived'] { color: var(--text-dim); }
+
+.members-title { font-size: var(--fs-md); gap: var(--s-2); }
+.role-summary { font-size: var(--fs-xs); color: var(--text-dim); margin: 0 0 var(--s-3); }
+
+.member-list { gap: var(--s-2); }
+.member-row { border-radius: var(--r-md); padding: var(--s-3) var(--s-4); gap: var(--s-3); min-height: var(--tap); }
+.member-avatar { width: 36px; height: 36px; font-size: var(--fs-md); box-shadow: none; }
+.member-display-name { font-size: var(--fs-md); }
+.member-name-input { min-height: var(--tap); font-size: var(--fs-sm); }
+.member-name-input:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.add-member-box { border-radius: var(--r-md); padding: var(--s-4); }
+.add-member-title { font-size: var(--fs-md); }
+.inline-form { gap: var(--s-3); }
+.inline-form select, .inline-form .btn { min-height: var(--tap); }
+.field-label-inline { font-size: var(--fs-xs); color: var(--text-dim); }
+
+.history-toggle { min-height: var(--tap); }
+.timeline-list { list-style: none; margin: 0; padding: 0; }
+.timeline-change { font-size: var(--fs-sm); font-weight: var(--fw-semibold); margin-bottom: var(--s-1); }
+.timeline-content { border-radius: var(--r-md); }
+
+@media (max-width: 560px) {
+  .inline-form .role-field { flex: 1 1 100%; }
+  .inline-form > button { flex: 1 1 100%; }
+}

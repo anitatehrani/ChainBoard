@@ -1,0 +1,46 @@
+/* Sign-in, sign-up and Account. Tokens from design/tokens.css and theme variables only. */
+
+.auth-page { padding: var(--s-5) var(--s-4); }
+.auth-card { padding: var(--s-6) var(--s-5); border-radius: var(--r-lg); }
+.auth-top { margin-bottom: var(--s-4); }
+.auth-title { font-size: var(--fs-lg); font-weight: var(--fw-bold); margin-bottom: var(--s-1); }
+.auth-subtitle { font-size: var(--fs-sm); margin-bottom: var(--s-4); }
+
+.theme-toggle { min-height: var(--tap); min-width: var(--tap); border-radius: var(--r-pill); }
+
+.field { gap: var(--s-1); }
+.field-label-text { font-size: var(--fs-sm); color: var(--text); }
+.field input, .field select { min-height: var(--tap); }
+.field input:focus-visible, .field select:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.field-hint { font-size: var(--fs-xs); color: var(--text-dim); min-height: 18px; }
+.field-hint.good { color: var(--success); font-weight: var(--fw-semibold); }
+.field-hint.bad { color: var(--danger); }
+
+.auth-card .btn, .account-page .btn { min-height: var(--tap); }
+.auth-card .btn-primary { width: 100%; }
+.link-btn { min-height: var(--tap); padding: 0 var(--s-1); }
+.link-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-sm); }
+
+.pw-toggle { min-height: 36px; min-width: 52px; font-size: var(--fs-xs); color: var(--accent-hover); border-radius: var(--r-sm); }
+.pw-toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.pw-checklist { font-size: var(--fs-xs); color: var(--text-dim); gap: var(--s-1) var(--s-3); }
+.pw-checklist li.met { color: var(--success); font-weight: var(--fw-semibold); }
+
+.error-banner, .success-banner { border-radius: var(--r-md); font-size: var(--fs-sm); padding: var(--s-3) var(--s-4); }
+.error-banner { color: var(--danger); }
+.error-banner::before { content: 'Problem: '; font-weight: var(--fw-bold); }
+.success-banner::before { content: 'Done: '; font-weight: var(--fw-bold); }
+
+/* account */
+.account-page { gap: var(--s-4); }
+.account-section { padding: var(--s-5); }
+.account-row { gap: var(--s-4); }
+.account-name { font-size: var(--fs-lg); line-height: var(--lh-tight); }
+.account-avatar.placeholder { font-size: var(--fs-lg); }
+.account-section .timeline { margin-top: var(--s-3); }
+.timeline-list { list-style: none; margin: 0; padding: 0; }
+
+@media (max-width: 480px) {
+  .auth-card { padding: var(--s-5) var(--s-4); }
+  .account-signout { margin-left: 0; width: 100%; }
+}

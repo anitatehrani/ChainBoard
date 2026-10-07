@@ -1,0 +1,122 @@
+/* Task board. Uses only tokens from design/tokens.css and the theme variables.
+   Loaded after App.css, so these rules replace the old .kanban-* rules. */
+
+.board-hint { font-size: var(--fs-sm); color: var(--text-dim); margin: 0 0 var(--s-3); }
+
+.board-tools { display: flex; flex-direction: column; gap: var(--s-3); margin-bottom: var(--s-4); }
+.board-tools .load-row { gap: var(--s-2); }
+
+.filter-bar {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--s-2); margin: 0;
+}
+.filter-bar select { width: auto; min-width: 150px; min-height: var(--tap); }
+.filter-bar .btn { min-height: var(--tap); }
+.board-tools .load-row input,
+.board-tools .load-row .btn { min-height: var(--tap); }
+
+/* ── columns ──────────────────────────────────────────────────────────── */
+.kanban {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-4);
+  margin-top: var(--s-2);
+  align-items: start;
+}
+@media (max-width: 860px) { .kanban { grid-template-columns: 1fr; } }
+
+.kanban-col {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-3);
+  min-height: 96px;
+  transition: background var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+}
+.kanban-col.drag-over {
+  border-color: var(--accent);
+  background: var(--overlay);
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
+}
+
+.kanban-col-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s-2);
+  font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  margin-bottom: var(--s-3);
+}
+.kanban-col-title { display: inline-flex; align-items: center; gap: var(--s-2); }
+.kanban-col-dot { width: 8px; height: 8px; border-radius: var(--r-pill); background: currentColor; }
+.kanban-count {
+  background: var(--overlay);
+  color: var(--text-dim);
+  border-radius: var(--r-pill);
+  padding: 1px var(--s-2);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  min-width: 24px; text-align: center;
+}
+.kanban-empty {
+  font-size: var(--fs-sm); color: var(--text-faint);
+  border: 1px dashed var(--border); border-radius: var(--r-md);
+  padding: var(--s-4) var(--s-3); text-align: center;
+}
+
+/* ── cards ────────────────────────────────────────────────────────────── */
+.kanban-card {
+  position: relative;
+  display: flex; flex-direction: column; gap: var(--s-2);
+  min-height: var(--tap);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--card-edge, var(--st-todo));
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+  margin-bottom: var(--s-2);
+  cursor: grab;
+  text-align: left;
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease);
+}
+.kanban-card:last-child { margin-bottom: 0; }
+.kanban-card:hover { border-color: var(--accent); border-left-color: var(--card-edge, var(--st-todo)); box-shadow: 0 1px 0 var(--border); }
+.kanban-card:active { cursor: grabbing; }
+.kanban-card:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.kanban-card.dragging { opacity: 0.4; }
+
+/* status edge: To Do / In Progress / Done */
+.kanban-card[data-status='todo']        { --card-edge: var(--st-todo); }
+.kanban-card[data-status='in-progress'] { --card-edge: var(--st-progress); }
+.kanban-card[data-status='done']        { --card-edge: var(--st-done); }
+
+/* card state from boardLogic.cardState */
+.kanban-card[data-state='overdue'] { --card-edge: var(--st-overdue); }
+.kanban-card[data-state='done'] { background: transparent; }
+.kanban-card[data-state='done'] .kanban-card-title {
+  color: var(--text-dim); font-weight: var(--fw-medium);
+  text-decoration: line-through; text-decoration-color: var(--text-faint);
+}
+.kanban-card[data-state='archived'] { opacity: 0.7; border-style: dashed; border-left-style: solid; background: transparent; }
+
+.kanban-card-title {
+  font-size: var(--fs-md); font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight); margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.kanban-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); }
+.kanban-card-meta .pill { font-size: var(--fs-xs); padding: 2px var(--s-2); border-radius: var(--r-pill); }
+.kanban-card-due { font-size: var(--fs-xs); color: var(--text-dim); }
+.kanban-card[data-state='overdue'] .kanban-card-due { color: var(--st-overdue); font-weight: var(--fw-semibold); }
+.kanban-card .kanban-card-due.soon { color: var(--st-soon); font-weight: var(--fw-semibold); }
+.kanban-card-tag { font-size: var(--fs-xs); color: var(--text-dim); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 0 var(--s-2); }
+
+/* the card is a real button-like control; make links/targets easy to hit on touch */
+@media (pointer: coarse) {
+  .kanban-card { padding: var(--s-4) var(--s-3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kanban-card, .kanban-col { transition: none; }
+}

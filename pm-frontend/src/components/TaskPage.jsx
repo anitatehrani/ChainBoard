@@ -1,3 +1,7 @@
+import { cardState, todayISO } from '../boardLogic'
+import { isAllowedMove, auditEntries } from '../taskLogic'
+import './task.css'
+
 // Old (pre-role) projects stored members as plain ID strings; new ones store
 // {id, role}. This tolerates either shape so past data doesn't crash the UI.
 function memberId(m) { return typeof m === 'string' ? m : m.id }
@@ -14,8 +18,8 @@ function TaskPage({
   newComment, setNewComment, addComment,
   goTo
 }) {
-  const isOverdue = selectedTask?.dueDate && selectedTask.status !== 'done' &&
-    new Date(selectedTask.dueDate) < new Date(new Date().toDateString())
+  const cs = selectedTask ? cardState(selectedTask, todayISO()) : null
+  const entries = auditEntries(history, s => statusMeta[s]?.label || s)
 
   return (
     <section className="card wide">
@@ -25,7 +29,7 @@ function TaskPage({
       </div>
 
       <div className="load-row">
-        <input placeholder="Task ID" value={loadTaskId} onChange={e => setLoadTaskId(e.target.value)} />
+        <input placeholder="Task ID" aria-label="Task ID" value={loadTaskId} onChange={e => setLoadTaskId(e.target.value)} />
         <button onClick={loadTaskAndHistory} className="btn btn-accent" disabled={loadingTask}>
           {loadingTask ? 'Loading…' : 'Load Task'}
         </button>
@@ -39,12 +43,12 @@ function TaskPage({
       )}
 
       {selectedTask && (
-        <div className="task-detail">
-          {selectedTask.archived && <div className="archived-banner">🗑 This task is archived</div>}
+        <div className="task-detail" data-status={selectedTask.status} data-state={cs.state}>
+          {selectedTask.archived && <div className="archived-banner" role="status">This task is archived</div>}
 
           <div className="task-detail-top">
             {editMeta ? (
-              <input className="edit-title-input" value={editMeta.title}
+              <input className="edit-title-input" aria-label="Title" value={editMeta.title}
                 onChange={e => setEditMeta({ ...editMeta, title: e.target.value })} />
             ) : (
               <h3>{selectedTask.title}</h3>
@@ -57,13 +61,12 @@ function TaskPage({
                 {statusMeta[selectedTask.status].label}
               </span>
               {selectedTask.assigneeId && (
-                <span className="pill assignee">👤 {displayName(selectedTask.assigneeId)}</span>
+                <span className="pill assignee">Assigned to {displayName(selectedTask.assigneeId)}</span>
               )}
-              {selectedTask.dueDate && (
-                <span className="pill sm" style={isOverdue
-                  ? { color: 'var(--danger)', background: 'rgba(239,68,68,0.12)' }
-                  : { color: 'var(--text-dim)', background: 'rgba(154,160,171,0.12)' }}>
-                  📅 {selectedTask.dueDate}{isOverdue ? ' (overdue)' : ''}
+              {cs.dueText && (
+                <span className={`task-due ${cs.overdue ? 'overdue' : ''} ${cs.dueSoon ? 'soon' : ''}`}>
+                  {cs.dueText}
+                  <span className="task-due-date"> · {selectedTask.dueDate}</span>
                 </span>
               )}
             </div>
@@ -97,18 +100,18 @@ function TaskPage({
             </>
           )}
 
-          <div className="status-buttons">
+          <div className="status-buttons" role="group" aria-label="Status">
             {columns.map(s => {
               const isCurrent = selectedTask.status === s
-              const transitions = { todo: ['in-progress'], 'in-progress': ['todo', 'done'], done: ['in-progress', 'todo'] }
-              const allowed = isCurrent || transitions[selectedTask.status]?.includes(s)
+              const allowed = isAllowedMove(selectedTask.status, s)
               return (
                 <button key={s}
                   onClick={() => updateStatus(selectedTask.taskId, s)}
                   disabled={!allowed}
+                  aria-pressed={isCurrent}
                   title={!allowed ? 'That move isn’t allowed from the current status' : ''}
                   className={`status-btn ${isCurrent ? 'active' : ''}`}>
-                  {statusMeta[s].label}
+                  {isCurrent ? '✓ ' : ''}{statusMeta[s].label}
                 </button>
               )
             })}
@@ -116,7 +119,7 @@ function TaskPage({
 
           {selectedTask.status !== 'done' && selectedProject && selectedProject.projectId === selectedTask.projectId && (
             <div className="assign-row">
-              <select value={assignTo} onChange={e => setAssignTo(e.target.value)}>
+              <select aria-label="Assign to" value={assignTo} onChange={e => setAssignTo(e.target.value)}>
                 <option value="">Assign to…</option>
                 {selectedProject.members.map(m => {
                   const id = memberId(m)
@@ -140,7 +143,7 @@ function TaskPage({
 
           {selectedTask.attachments && selectedTask.attachments.length > 0 && (
             <div className="attachments">
-              <div className="attachments-title">📎 Attached Files</div>
+              <div className="attachments-title">Attached files ({selectedTask.attachments.length})</div>
               {selectedTask.attachments.map((a, i) => (
                 <div key={i} className="attachment-item">
                   <span className="attachment-name">{a.fileName}</span>
@@ -153,7 +156,7 @@ function TaskPage({
           )}
 
           <div className="comments-block">
-            <div className="attachments-title">💬 Comments {selectedTask.comments?.length ? `(${selectedTask.comments.length})` : ''}</div>
+            <div className="attachments-title">Comments {selectedTask.comments?.length ? `(${selectedTask.comments.length})` : ''}</div>
             {selectedTask.comments && selectedTask.comments.length > 0 && (
               <div className="comment-list">
                 {selectedTask.comments.map((c, i) => (
@@ -165,9 +168,7 @@ function TaskPage({
               </div>
             )}
             <form onSubmit={addComment} className="comment-form">
-              <input placeholder="Your ID" value={newComment.authorId}
-                onChange={e => setNewComment({ ...newComment, authorId: e.target.value })} />
-              <input placeholder="Add a comment…" value={newComment.text}
+              <input placeholder="Add a comment…" aria-label="Add a comment" value={newComment.text} style={{ flex: 1 }}
                 onChange={e => setNewComment({ ...newComment, text: e.target.value })} />
               <button type="submit" className="btn btn-secondary sm">Post</button>
             </form>
@@ -175,7 +176,7 @@ function TaskPage({
 
           {!selectedTask.archived && (
             <button onClick={() => archiveTask(selectedTask.taskId)} className="btn btn-danger sm archive-task-btn">
-              🗑 Archive Task
+              Archive task
             </button>
           )}
         </div>
@@ -184,25 +185,30 @@ function TaskPage({
       {history.length > 0 && (
         <div className="timeline">
           <div className="timeline-header">
-            <span className="lock-icon">🔒</span>
-            Immutable Audit Trail — {history.length} on-chain record{history.length > 1 ? 's' : ''}
+            <span className="lock-icon" aria-hidden="true">🔒</span>
+            Immutable audit trail — {history.length} on-chain record{history.length > 1 ? 's' : ''}
           </div>
-          {[...history].reverse().map((h, i) => (
-            <div key={i} className="timeline-item">
-              <div className="timeline-dot" style={{ background: statusMeta[h.value.status]?.color }} />
+          <ol className="timeline-list" aria-label="Audit trail, newest first">
+          {entries.map(e => (
+            <li key={e.txId || e.n} className="timeline-item">
+              <div className="timeline-dot" aria-hidden="true" style={{ background: statusMeta[e.value.status]?.color }} />
               <div className="timeline-content">
                 <div className="timeline-row">
-                  <span className="mono tx-id">tx #{history.length - i}</span>
-                  <span className="pill sm" style={{ color: statusMeta[h.value.status].color, background: statusMeta[h.value.status].bg }}>
-                    {statusMeta[h.value.status].label}
-                  </span>
+                  <span className="mono tx-id">tx #{e.n}</span>
+                  {statusMeta[e.value.status] && (
+                    <span className="pill sm" style={{ color: statusMeta[e.value.status].color, background: statusMeta[e.value.status].bg }}>
+                      {statusMeta[e.value.status].label}
+                    </span>
+                  )}
                 </div>
+                <div className="timeline-change">{e.changes.join(' · ')}</div>
                 <div className="timeline-meta">
-                  assignee <b>{h.value.assigneeId ? displayName(h.value.assigneeId) : '—'}</b> · priority <b>{h.value.priority}</b>
+                  assignee <b>{e.value.assigneeId ? displayName(e.value.assigneeId) : '—'}</b> · priority <b>{e.value.priority}</b>
                 </div>
               </div>
-            </div>
+            </li>
           ))}
+          </ol>
         </div>
       )}
     </section>

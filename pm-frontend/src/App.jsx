@@ -1,12 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useAutoRefresh } from './lib/useAutoRefresh'
+import { refreshTargets, sameData, mergeBoard } from './refreshLogic'
 import './App.css'
 import Nav from './components/Nav'
+import AuthPage from './components/AuthPage'
+import VerifyEmailPage from './components/VerifyEmailPage'
+import AccountPage from './components/AccountPage'
+import ProfilePage from './components/ProfilePage'
+import SettingsPage from './components/SettingsPage'
+import {
+  DEFAULTS, loadSettings, saveSettings, normalizeSettings, resolveTheme, toggledTheme, rootAttributes
+} from './settingsLogic'
 import DashboardPage from './components/DashboardPage'
 import ProjectPage from './components/ProjectPage'
 import BoardPage from './components/BoardPage'
 import TaskPage from './components/TaskPage'
-
-const API = 'http://localhost:3000'
+import { useAuth } from './auth/AuthContext'
+import { API, apiFetch } from './lib/api'
 
 // ── local board-tracking helpers (client-side convenience index over on-chain data) ──
 function getBoardIds(projectId) {
@@ -16,15 +26,98 @@ function saveBoardIds(projectId, ids) {
   localStorage.setItem(`pm_board_${projectId}`, JSON.stringify([...new Set(ids)]))
 }
 
-function App() {
-  const [page, setPage] = useState('dashboard')
+// Generates a short, collision-resistant project ID client-side, so users
+// never have to invent one themselves. Uses the browser's crypto API when
+// available (secure contexts / localhost) with a fallback for older browsers.
+function generateProjectId() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID().split('-')[0]
+  return Math.random().toString(36).slice(2, 10)
+}
 
-  const [theme, setTheme] = useState(() => localStorage.getItem('pm_theme') || 'dark')
+function App() {
+  // ── Preferences for this browser (theme, text size, start page…). Display only;
+  // see settingsLogic.js. The ledger is never involved.
+  const [settings, setSettings] = useState(() => loadSettings(window.localStorage))
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches)
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('pm_theme', theme)
-  }, [theme])
-  const toggleTheme = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'))
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = (e) => setSystemDark(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  useEffect(() => {
+    const attrs = rootAttributes(settings, systemDark)
+    for (const [k, v] of Object.entries(attrs)) document.documentElement.setAttribute(k, v)
+    saveSettings(window.localStorage, settings)
+  }, [settings, systemDark])
+  const theme = resolveTheme(settings.theme, systemDark)
+  const toggleTheme = () => setSettings(s => ({ ...s, theme: toggledTheme(s.theme, systemDark) }))
+  const updateSettings = (patch) => setSettings(s => normalizeSettings({ ...s, ...patch }))
+  const resetSettings = () => setSettings({ ...DEFAULTS })
+
+  const [page, setPage] = useState(() => settings.startPage)
+
+  // ── Auth. The session lives in an HttpOnly cookie that the browser sends by
+  // itself (JavaScript can never read it), so nothing secret is kept in
+  // localStorage. The account itself lives on the ledger; see AuthContext.
+  const { user: currentUser, loading: authLoading, logout } = useAuth()
+
+  // Every backend request goes through apiFetch (same-origin, cookie attached;
+  // a 401 from any non-auth call drops the app back to the sign-in page).
+  const authFetch = apiFetch
+
+  // ── "My projects" — an on-chain index (see chaincode's getMyProjects/
+  // _addProjectToUserIndex) of every project this account owns or has been
+  // added to as a member, kept in sync automatically by the chaincode
+  // whenever a project is created or a member is added.
+  const [myProjects, setMyProjects] = useState([])
+  const [loadingMyProjects, setLoadingMyProjects] = useState(false)
+
+  async function loadMyProjects() {
+    setLoadingMyProjects(true)
+    const res = await authFetch(`${API}/projects/mine`)
+    const data = await res.json()
+    setLoadingMyProjects(false)
+    if (res.ok) setMyProjects(data)
+  }
+
+  // ── User directory — every registered account's {email, name}, fetched
+  // once on login so member/assignee pickers can show real names instead of
+  // making anyone type or see raw email addresses (see /users on the
+  // backend and getAllUsers in the chaincode).
+  const [userDirectory, setUserDirectory] = useState([])
+  const directoryMap = userDirectory.reduce((acc, u) => { acc[u.email] = u.name; return acc }, {})
+
+  async function loadUserDirectory() {
+    const res = await authFetch(`${API}/users`)
+    const data = await res.json()
+    if (res.ok) setUserDirectory(data)
+  }
+
+  const signedInEmail = currentUser ? currentUser.email : null
+  useEffect(() => {
+    if (signedInEmail) { loadMyProjects(); loadUserDirectory() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedInEmail])
+
+  function selectMyProject(project) {
+    setSelectedProject(project)
+    resetTaskContext()
+    setProjectHistory([]); setShowProjectHistory(false)
+    refreshBoard(project.projectId)
+    goTo('project')
+  }
+
+  async function handleLogout() {
+    await logout()
+    // Forget everything that belonged to the person who just signed out.
+    setSelectedProject(null)
+    setSelectedTask(null)
+    setMyProjects([])
+    setUserDirectory([])
+    setBoardTasks([])
+    setPage('dashboard')
+  }
 
   const [selectedProject, setSelectedProject] = useState(null)
   const [selectedTask, setSelectedTask] = useState(null)
@@ -35,7 +128,7 @@ function App() {
   const [uploadFile, setUploadFile] = useState(null)
   const [uploading, setUploading] = useState(false)
 
-  const [pForm, setPForm] = useState({ projectId: '', name: '', description: '', ownerId: '' })
+  const [pForm, setPForm] = useState({ name: '', description: '' })
   const [tForm, setTForm] = useState({ taskId: '', title: '', description: '', priority: 'medium', dueDate: '' })
   const [loadProjectId, setLoadProjectId] = useState('')
   const [loadTaskId, setLoadTaskId] = useState('')
@@ -48,11 +141,11 @@ function App() {
   const [projectHistory, setProjectHistory] = useState([])
   const [showProjectHistory, setShowProjectHistory] = useState(false)
   const [loadingProjHistory, setLoadingProjHistory] = useState(false)
-  const [showArchivedTasks, setShowArchivedTasks] = useState(false)
+  const [showArchivedTasks, setShowArchivedTasks] = useState(() => settings.showArchived)
 
   const [assignTo, setAssignTo] = useState('')
   const [editMeta, setEditMeta] = useState(null)
-  const [newComment, setNewComment] = useState({ authorId: '', text: '' })
+  const [newComment, setNewComment] = useState({ text: '' })
 
   // Local, browser-side directory mapping on-chain IDs -> friendly display names.
   // The ledger itself only ever stores/enforces raw IDs; this is purely cosmetic.
@@ -70,7 +163,10 @@ function App() {
   }
   function displayName(id) {
     if (!id) return id
-    return nameMap[id] || id
+    // Priority: an explicit manual override (nameMap) > the person's real
+    // registered account name (directoryMap, from /users) > the raw
+    // id/email itself as a last-resort fallback for legacy/unregistered ids.
+    return nameMap[id] || directoryMap[id] || id
   }
 
   // Turns raw backend/chaincode error strings into plain, friendly sentences.
@@ -87,6 +183,10 @@ function App() {
         (m) => `Couldn't find a project with ID "${m[1]}". Double-check the ID and try again.`],
       [/^Task (.+) does not exist$/i,
         (m) => `Couldn't find a task with ID "${m[1]}". Double-check the ID and try again.`],
+      [/^User (.+) does not exist$/i,
+        () => 'No account found with that email.'],
+      [/^User (.+) already exists$/i,
+        () => 'An account with that email already exists — try signing in instead.'],
       [/^Member (.+) already in project$/i,
         (m) => `"${m[1]}" is already a member of this project.`],
       [/is not a member of project/i,
@@ -103,6 +203,8 @@ function App() {
         () => 'This project is already archived.'],
       [/already attached to task/i,
         () => 'That file is already attached to this task.'],
+      [/Please sign in/i,
+        () => 'Please sign in to do that.'],
       [/^Invalid transition:\s*(\S+)\s*→\s*(\S+)$/i,
         (m) => {
           const label = { todo: 'To Do', 'in-progress': 'In Progress', done: 'Done' }
@@ -117,7 +219,7 @@ function App() {
       [/^Status must be one of.*$/i,
         () => 'Please choose a valid status: To Do, In Progress, or Done.'],
       [/^Field must be one of.*$/i,
-        () => 'That field can’t be edited — only title, description, and priority can be changed.'],
+        () => 'That field can’t be edited — only title, description, priority, and due date can be changed.'],
       [/^Missing: (.+)$/i,
         (m) => `Please fill in: ${m[1]}.`],
     ]
@@ -139,6 +241,55 @@ function App() {
   const dismissToast = (id) => setToasts(t => t.filter(x => x.id !== id))
   const goTo = (p) => setPage(p)
 
+  // ── Automatic refresh: re-reads what the open screen shows. Read-only; a
+  // failed refresh is silent and the screen keeps its last good data.
+  const mutating = useRef(0) // > 0 while an optimistic status change is in flight
+  async function refreshOpenScreen() {
+    if (!signedInEmail) return
+    const targets = refreshTargets(page, {
+      hasProject: !!selectedProject, hasTask: !!selectedTask, editing: !!editMeta
+    })
+    const get = async (url) => {
+      const res = await authFetch(url)
+      if (!res.ok) throw new Error(`refresh failed (${res.status})`)
+      return res.json()
+    }
+    const keep = (setter) => (data) => setter(prev => (sameData(prev, data) ? prev : data))
+    const jobs = []
+    if (targets.includes('projects')) jobs.push(get(`${API}/projects/mine`).then(keep(setMyProjects)))
+    if (targets.includes('project') && selectedProject) {
+      jobs.push(get(`${API}/projects/${selectedProject.projectId}`).then(keep(setSelectedProject)))
+    }
+    if (targets.includes('board') && selectedProject) {
+      const projectId = selectedProject.projectId
+      const ids = getBoardIds(projectId)
+      jobs.push(Promise.all(ids.map(id => get(`${API}/tasks/${id}`).catch(() => null))).then(fresh => {
+        if (selectedProjectRef.current !== projectId) return // switched project meanwhile
+        setBoardTasks(prev => {
+          const merged = mergeBoard(ids, fresh, prev)
+          return sameData(prev, merged) ? prev : merged
+        })
+      }))
+    }
+    if (targets.includes('task') && selectedTask) {
+      const taskId = selectedTask.taskId
+      jobs.push(Promise.all([get(`${API}/tasks/${taskId}`), get(`${API}/tasks/${taskId}/history`)]).then(([t, h]) => {
+        if (selectedTaskRef.current !== taskId) return
+        setSelectedTask(prev => (sameData(prev, t) ? prev : t))
+        setHistory(prev => (sameData(prev, h) ? prev : h))
+      }))
+    }
+    await Promise.all(jobs)
+  }
+  const selectedProjectRef = useRef(null)
+  const selectedTaskRef = useRef(null)
+  selectedProjectRef.current = selectedProject ? selectedProject.projectId : null
+  selectedTaskRef.current = selectedTask ? selectedTask.taskId : null
+  useAutoRefresh(refreshOpenScreen, {
+    enabled: !!signedInEmail && settings.autoRefresh,
+    isBusy: () => mutating.current > 0
+  })
+
   function resetTaskContext() {
     setSelectedTask(null)
     setHistory([])
@@ -155,7 +306,7 @@ function App() {
     if (ids.length === 0) { setBoardTasks([]); return }
     setLoadingBoard(true)
     const results = await Promise.all(
-      ids.map(id => fetch(`${API}/tasks/${id}`).then(r => r.ok ? r.json() : null).catch(() => null))
+      ids.map(id => authFetch(`${API}/tasks/${id}`).then(r => r.ok ? r.json() : null).catch(() => null))
     )
     setBoardTasks(results.filter(Boolean))
     setLoadingBoard(false)
@@ -163,19 +314,25 @@ function App() {
 
   async function createProject(e) {
     e.preventDefault()
-    const res = await fetch(`${API}/projects`, {
+    // projectId is generated here rather than typed by the user; ownerId is
+    // deliberately NOT sent — the backend derives it from the authenticated
+    // session (req.user.email), so ownership is always tied to a real
+    // logged-in account rather than a client-supplied string.
+    const projectId = generateProjectId()
+    const res = await authFetch(`${API}/projects`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(pForm)
+      body: JSON.stringify({ ...pForm, projectId })
     })
     const data = await res.json()
     if (res.ok) {
-      notify(`Project "${data.name}" created on-chain`)
+      notify(`Project "${data.name}" created — ID: ${data.projectId}`)
       setSelectedProject(data)
-      setPForm({ projectId: '', name: '', description: '', ownerId: '' })
+      setPForm({ name: '', description: '' })
       resetTaskContext()
       setProjectHistory([]); setShowProjectHistory(false)
       refreshBoard(data.projectId)
+      loadMyProjects()
       goTo('project')
     } else notify(data.error, 'error')
   }
@@ -183,7 +340,7 @@ function App() {
   async function loadProject() {
     if (!loadProjectId) return
     setLoadingProject(true)
-    const res = await fetch(`${API}/projects/${loadProjectId}`)
+    const res = await authFetch(`${API}/projects/${loadProjectId}`)
     const data = await res.json()
     setLoadingProject(false)
     if (res.ok) {
@@ -195,7 +352,7 @@ function App() {
   }
 
   async function loadHistory(taskId) {
-    const res = await fetch(`${API}/tasks/${taskId}/history`)
+    const res = await authFetch(`${API}/tasks/${taskId}/history`)
     const data = await res.json()
     if (res.ok) setHistory(data)
   }
@@ -203,7 +360,7 @@ function App() {
   async function loadProjectHistory() {
     if (!selectedProject) return
     setLoadingProjHistory(true)
-    const res = await fetch(`${API}/projects/${selectedProject.projectId}/history`)
+    const res = await authFetch(`${API}/projects/${selectedProject.projectId}/history`)
     const data = await res.json()
     setLoadingProjHistory(false)
     if (res.ok) { setProjectHistory(data); setShowProjectHistory(true) }
@@ -213,7 +370,7 @@ function App() {
   async function createTask(e) {
     e.preventDefault()
     if (!selectedProject) return notify('Load a project first', 'error')
-    const res = await fetch(`${API}/tasks`, {
+    const res = await authFetch(`${API}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...tForm, projectId: selectedProject.projectId })
@@ -231,8 +388,8 @@ function App() {
     if (!taskId) return
     setLoadingTask(true)
     const [taskRes, histRes] = await Promise.all([
-      fetch(`${API}/tasks/${taskId}`),
-      fetch(`${API}/tasks/${taskId}/history`)
+      authFetch(`${API}/tasks/${taskId}`),
+      authFetch(`${API}/tasks/${taskId}/history`)
     ])
     const taskData = await taskRes.json()
     const histData = await histRes.json()
@@ -261,11 +418,12 @@ function App() {
     if (selectedTask?.taskId === taskId) setSelectedTask({ ...selectedTask, status })
     const toastId = notify(`Status → ${status}`)
 
-    const res = await fetch(`${API}/tasks/${taskId}/status`, {
+    mutating.current += 1
+    const res = await authFetch(`${API}/tasks/${taskId}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
-    })
+    }).finally(() => { mutating.current -= 1 })
     const data = await res.json()
     if (res.ok) {
       patchBoardTask(data)
@@ -282,7 +440,7 @@ function App() {
   async function addMember(e) {
     e.preventDefault()
     if (!newMember || !selectedProject) return
-    const res = await fetch(`${API}/projects/${selectedProject.projectId}/members`, {
+    const res = await authFetch(`${API}/projects/${selectedProject.projectId}/members`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ memberId: newMember, role: newMemberRole })
@@ -298,7 +456,7 @@ function App() {
 
   async function archiveProject() {
     if (!selectedProject) return
-    const res = await fetch(`${API}/projects/${selectedProject.projectId}`, { method: 'DELETE' })
+    const res = await authFetch(`${API}/projects/${selectedProject.projectId}`, { method: 'DELETE' })
     const data = await res.json()
     if (res.ok) { setSelectedProject(data); notify('Project archived') }
     else notify(data.error, 'error')
@@ -306,7 +464,7 @@ function App() {
 
   async function addExistingTaskToBoard() {
     if (!addBoardId || !selectedProject) return
-    const res = await fetch(`${API}/tasks/${addBoardId}`)
+    const res = await authFetch(`${API}/tasks/${addBoardId}`)
     const data = await res.json()
     if (!res.ok) return notify(data.error, 'error')
     if (data.projectId !== selectedProject.projectId) return notify('That task belongs to a different project', 'error')
@@ -317,7 +475,7 @@ function App() {
 
   async function assignTask() {
     if (!selectedTask || !assignTo) return
-    const res = await fetch(`${API}/tasks/${selectedTask.taskId}/assign`, {
+    const res = await authFetch(`${API}/tasks/${selectedTask.taskId}/assign`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ assigneeId: assignTo })
@@ -347,7 +505,7 @@ function App() {
     if (changed.length === 0) { setEditMeta(null); return }
     let result = selectedTask
     for (const field of changed) {
-      const res = await fetch(`${API}/tasks/${selectedTask.taskId}/meta`, {
+      const res = await authFetch(`${API}/tasks/${selectedTask.taskId}/meta`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ field, value: editMeta[field] })
@@ -364,7 +522,7 @@ function App() {
   }
 
   async function archiveTask(taskId) {
-    const res = await fetch(`${API}/tasks/${taskId}`, { method: 'DELETE' })
+    const res = await authFetch(`${API}/tasks/${taskId}`, { method: 'DELETE' })
     const data = await res.json()
     if (res.ok) {
       patchBoardTask(data)
@@ -375,8 +533,10 @@ function App() {
 
   async function addComment(e) {
     e.preventDefault()
-    if (!selectedTask || !newComment.authorId || !newComment.text) return
-    const res = await fetch(`${API}/tasks/${selectedTask.taskId}/comments`, {
+    // authorId is NOT sent — the backend derives it from the authenticated
+    // session, so every comment is always attributable to a real account.
+    if (!selectedTask || !newComment.text) return
+    const res = await authFetch(`${API}/tasks/${selectedTask.taskId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newComment)
@@ -385,7 +545,7 @@ function App() {
     if (res.ok) {
       setSelectedTask(data)
       patchBoardTask(data)
-      setNewComment({ authorId: '', text: '' })
+      setNewComment({ text: '' })
       notify('Comment added')
       loadHistory(selectedTask.taskId)
     } else notify(data.error, 'error')
@@ -405,7 +565,7 @@ function App() {
       const ipfsData = await ipfsRes.json()
       const cid = ipfsData.Hash
 
-      const res = await fetch(`${API}/tasks/${selectedTask.taskId}/files`, {
+      const res = await authFetch(`${API}/tasks/${selectedTask.taskId}/files`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileName: uploadFile.name, ipfsCid: cid })
@@ -436,12 +596,29 @@ function App() {
   const columns = ['todo', 'in-progress', 'done']
   const isArchived = selectedProject?.status === 'archived'
 
+  // ── Gate the entire app behind login. Nothing below this point is reachable
+  // without a valid session.
+  if (authLoading) {
+    return <div className="app"><p className="context-line" style={{ textAlign: 'center', marginTop: 80 }}>Loading…</p></div>
+  }
+  // The emailed confirmation link works whether or not you are signed in.
+  if (window.location.pathname === '/verify-email') {
+    return <div className="app"><VerifyEmailPage /></div>
+  }
+  if (!currentUser) {
+    return (
+      <div className="app">
+        <AuthPage theme={theme} toggleTheme={toggleTheme} />
+      </div>
+    )
+  }
+
   return (
     <div className="app">
       <header className="header">
         <div className="header-icon">⛓</div>
         <div className="header-title">
-          <h1>Decentralized PM System</h1>
+          <h1>ChainBoard</h1>
           <p className="subtitle">Hyperledger Fabric · IPFS · Immutable Audit Trail</p>
         </div>
         <button className="theme-toggle" onClick={toggleTheme} title="Switch theme">
@@ -449,7 +626,8 @@ function App() {
         </button>
       </header>
 
-      <Nav page={page} setPage={setPage} hasProject={!!selectedProject} hasTask={!!selectedTask} />
+      <Nav page={page} setPage={setPage} hasProject={!!selectedProject} hasTask={!!selectedTask}
+        currentUser={currentUser} onLogout={handleLogout} />
 
       <div className="toast-stack">
         {toasts.map(t => (
@@ -462,6 +640,29 @@ function App() {
         ))}
       </div>
 
+      {page === 'settings' && (
+        <SettingsPage
+          settings={settings} update={updateSettings} reset={resetSettings}
+          goTo={goTo} onLogout={handleLogout} notify={notify} user={currentUser}
+        />
+      )}
+
+      {page === 'account' && (
+        <>
+          <button className="link-btn back-link" onClick={() => goTo('settings')}>← Back to Settings</button>
+          <AccountPage notify={notify} onLogout={handleLogout} />
+        </>
+      )}
+
+      {page === 'profile' && (
+        <ProfilePage
+          user={currentUser}
+          myProjects={myProjects} loadingMyProjects={loadingMyProjects}
+          userDirectory={userDirectory}
+          selectMyProject={selectMyProject} goTo={goTo}
+        />
+      )}
+
       {page === 'dashboard' && (
         <DashboardPage
           pForm={pForm} setPForm={setPForm} createProject={createProject}
@@ -469,6 +670,7 @@ function App() {
           loadProject={loadProject} loadingProject={loadingProject}
           selectedProject={selectedProject} boardTasks={boardTasks} statusMeta={statusMeta}
           goTo={goTo}
+          myProjects={myProjects} loadingMyProjects={loadingMyProjects} selectMyProject={selectMyProject}
         />
       )}
 
@@ -480,6 +682,7 @@ function App() {
           loadProjectHistory={loadProjectHistory} loadingProjHistory={loadingProjHistory}
           showProjectHistory={showProjectHistory} projectHistory={projectHistory}
           nameMap={nameMap} displayName={displayName} setDisplayName={setDisplayName}
+          userDirectory={userDirectory}
           goTo={goTo}
         />
       )}

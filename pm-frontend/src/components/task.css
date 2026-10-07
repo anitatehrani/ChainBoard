@@ -1,0 +1,65 @@
+/* Task viewer. Tokens from design/tokens.css and theme variables only.
+   Loaded after App.css, so these rules refine the older ones. */
+
+.task-detail {
+  border-left: 4px solid var(--st-todo);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+}
+.task-detail[data-status='in-progress'] { border-left-color: var(--st-progress); }
+.task-detail[data-status='done'] { border-left-color: var(--st-done); }
+.task-detail[data-state='overdue'] { border-left-color: var(--st-overdue); }
+.task-detail[data-state='archived'] { border-left-style: dashed; }
+
+.task-detail-top { gap: var(--s-3); margin-bottom: var(--s-3); }
+.task-detail-top h3 {
+  font-size: var(--fs-lg); line-height: var(--lh-tight);
+  overflow-wrap: anywhere; flex: 1 1 240px;
+}
+.task-detail[data-state='done'] .task-detail-top h3 { color: var(--text-dim); }
+
+.task-due { font-size: var(--fs-sm); color: var(--text-dim); align-self: center; }
+.task-due.soon { color: var(--st-soon); font-weight: var(--fw-semibold); }
+.task-due.overdue { color: var(--st-overdue); font-weight: var(--fw-semibold); }
+.task-due-date { font-weight: var(--fw-regular); color: var(--text-dim); }
+
+.archived-banner { border-radius: var(--r-md); font-size: var(--fs-sm); }
+
+/* status control: a segmented group, current status marked with a tick */
+.status-buttons { gap: var(--s-2); margin-top: var(--s-4); flex-wrap: wrap; }
+.status-btn {
+  min-height: var(--tap);
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.status-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.assign-row select, .assign-row .btn, .comment-form input, .comment-form .btn,
+.load-row input, .load-row .btn, .file-label, .file-upload .btn,
+.edit-meta-actions .btn, .archive-task-btn, .task-detail > .btn { min-height: var(--tap); }
+.edit-meta-form { display: flex; flex-direction: column; gap: var(--s-3); margin: var(--s-3) 0; }
+.edit-meta-actions { display: flex; gap: var(--s-2); }
+
+.attachments-title { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--text); }
+.attachment-item { min-height: var(--tap); gap: var(--s-3); border: 1px solid var(--border); border-radius: var(--r-md); }
+.attachment-name { overflow-wrap: anywhere; }
+
+.comment-item { border-radius: var(--r-md); }
+
+/* audit trail */
+.timeline-list { list-style: none; margin: 0; padding: 0; }
+.timeline-item { gap: var(--s-3); margin-bottom: var(--s-1); }
+.timeline-content { border-radius: var(--r-md); padding: var(--s-3) var(--s-4); margin-bottom: var(--s-2); }
+.timeline-change { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--text); margin-bottom: var(--s-1); }
+.tx-id { font-size: var(--fs-xs); color: var(--text-dim); }
+.timeline-meta { font-size: var(--fs-xs); }
+
+@media (max-width: 560px) {
+  .task-detail { padding: var(--s-4); }
+  .status-btn { flex: 1 1 100%; }
+  .assign-row, .comment-form, .file-upload { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-btn { transition: none; }
+}

@@ -1,0 +1,34 @@
+/* Top navigation and the e-mail confirmation page. Tokens and theme variables only. */
+
+.nav { gap: var(--s-1); margin-bottom: var(--s-5); flex-wrap: wrap; align-items: stretch; }
+.nav-tab {
+  min-height: var(--tap);
+  padding: 0 var(--s-4);
+  font-size: var(--fs-md);
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.nav-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-sm); }
+.nav-tab.active { border-bottom-width: 3px; }
+.nav-tab:disabled { opacity: 0.6; text-decoration: line-through; text-decoration-color: var(--text-faint); }
+
+.nav-user { gap: var(--s-2); padding-bottom: 0; align-items: center; }
+.nav-user-link {
+  min-height: var(--tap); padding: 0 var(--s-3); border-radius: var(--r-md); font-size: var(--fs-sm);
+  color: var(--text-dim); /* buttons default to black text, invisible on the dark theme */
+}
+.nav-user-link:hover, .nav-user-link.active { color: var(--text); }
+.nav-user-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.nav-user .btn { min-height: var(--tap); }
+
+@media (max-width: 640px) {
+  .nav-user { margin-left: 0; width: 100%; justify-content: space-between; border-top: 1px solid var(--border); padding-top: var(--s-2); }
+  .nav-tab { flex: 1 1 auto; text-align: center; padding: 0 var(--s-3); }
+}
+@media (prefers-reduced-motion: reduce) { .nav-tab { transition: none; } }
+
+.back-link { margin-bottom: var(--s-3); }
+
+/* verify-email page */
+.verify-icon { margin: 0 auto var(--s-4); font-size: var(--fs-lg); font-weight: var(--fw-bold); color: #fff; }
+.verify-actions { display: flex; flex-direction: column; gap: var(--s-2); }
+.verify-actions .btn { width: 100%; min-height: var(--tap); }

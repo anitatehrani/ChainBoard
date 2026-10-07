@@ -1,0 +1,48 @@
+/* Settings page and the global preference hooks on <html>. Tokens and theme variables only. */
+
+.settings-page { display: flex; flex-direction: column; gap: var(--s-4); }
+
+.set-field { border: 0; margin: 0 0 var(--s-5); padding: 0; min-width: 0; }
+.set-field:last-child { margin-bottom: 0; }
+.set-legend { font-size: var(--fs-md); font-weight: var(--fw-semibold); padding: 0; margin-bottom: var(--s-2); }
+.set-hint { font-size: var(--fs-xs); color: var(--text-dim); margin: var(--s-1) 0 var(--s-2); }
+
+/* segmented control: real radios, visually hidden, label is the target */
+.seg { display: inline-flex; flex-wrap: wrap; gap: var(--s-2); }
+.seg-opt {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  min-height: var(--tap); padding: 0 var(--s-4);
+  background: var(--surface); color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.seg-opt:hover { border-color: var(--text-faint); }
+.seg-opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg-opt.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.seg-opt.on span::before { content: '✓ '; }
+.seg-opt:focus-within { box-shadow: var(--focus-ring); }
+
+.set-check { display: flex; align-items: center; gap: var(--s-3); min-height: var(--tap); font-size: var(--fs-md); cursor: pointer; }
+.set-check input { width: 20px; height: 20px; min-height: 0; accent-color: var(--accent); }
+
+.set-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin: var(--s-3) 0; }
+.set-actions .btn { min-height: var(--tap); }
+.set-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); font-size: var(--fs-sm); color: var(--danger); }
+
+.set-about { margin: 0; display: grid; gap: var(--s-2); }
+.set-about div { display: flex; gap: var(--s-3); font-size: var(--fs-sm); }
+.set-about dt { width: 80px; flex-shrink: 0; color: var(--text-dim); }
+.set-about dd { margin: 0; }
+
+@media (max-width: 560px) {
+  .set-actions .btn { width: 100%; }
+  .set-about div { flex-direction: column; gap: var(--s-1); }
+}
+
+/* ── global preference hooks (set on <html> by the app) ───────────────── */
+html[data-text='large'] .app { zoom: 1.15; }
+html[data-motion='reduce'] *, html[data-motion='reduce'] *::before, html[data-motion='reduce'] *::after {
+  transition: none !important; animation: none !important;
+}
+html[data-motion='reduce'] { --t-fast: 0ms; --t-base: 0ms; }

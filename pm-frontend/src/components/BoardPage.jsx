@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { cardState, cardAriaLabel, filterTasks, groupByColumn, todayISO } from '../boardLogic'
+import './board.css'
 
 // Old (pre-role) projects stored members as plain ID strings; new ones store
 // {id, role}. This tolerates either shape so past data doesn't crash the UI.
@@ -18,11 +20,11 @@ function BoardPage({
   const [filterAssignee, setFilterAssignee] = useState('')
   const [filterPriority, setFilterPriority] = useState('')
 
-  const visibleTasks = boardTasks.filter(t => showArchivedTasks || !t.archived)
-  const filteredTasks = visibleTasks.filter(t =>
-    (!filterAssignee || t.assigneeId === filterAssignee) &&
-    (!filterPriority || t.priority === filterPriority)
-  )
+  const today = todayISO()
+  const filteredTasks = filterTasks(boardTasks, {
+    showArchived: showArchivedTasks, assignee: filterAssignee, priority: filterPriority
+  })
+  const byColumn = groupByColumn(filteredTasks, columns)
   const filtersActive = filterAssignee || filterPriority
   const archivedCount = boardTasks.filter(t => t.archived).length
 
@@ -76,24 +78,25 @@ function BoardPage({
           <span className="card-badge project">Board</span>
           <h2>Task Board</h2>
         </div>
-        <p className="context-line">Drag a card between columns to change its status.</p>
+        <p className="board-hint">Drag a card between columns to change its status. Select a card to open it.</p>
 
+        <div className="board-tools">
         <div className="load-row">
-          <input placeholder="Add existing Task ID to this board" value={addBoardId}
+          <input placeholder="Add existing Task ID to this board" aria-label="Task ID to add to this board" value={addBoardId}
             onChange={e => setAddBoardId(e.target.value)} />
           <button onClick={addExistingTaskToBoard} className="btn btn-secondary">Add</button>
         </div>
 
         {boardTasks.length > 0 && (
-          <div className="filter-bar">
-            <select value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
+          <div className="filter-bar" role="group" aria-label="Board filters">
+            <select aria-label="Filter by assignee" value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
               <option value="">All assignees</option>
               {selectedProject.members.map(m => {
                 const id = memberId(m)
                 return <option key={id} value={id}>{displayName(id)}</option>
               })}
             </select>
-            <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+            <select aria-label="Filter by priority" value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
               <option value="">All priorities</option>
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -111,6 +114,7 @@ function BoardPage({
             )}
           </div>
         )}
+        </div>
 
         {loadingBoard ? (
           <div className="context-line">Loading tasks…</div>
@@ -129,13 +133,32 @@ function BoardPage({
                 onDrop={e => handleDrop(e, col)}
               >
                 <div className="kanban-col-header" style={{ color: statusMeta[col].color }}>
-                  {statusMeta[col].label}
-                  <span className="kanban-count">{filteredTasks.filter(t => t.status === col).length}</span>
+                  <span className="kanban-col-title">
+                    <span className="kanban-col-dot" aria-hidden="true" />
+                    {statusMeta[col].label}
+                  </span>
+                  <span className="kanban-count" aria-label={`${byColumn[col].length} tasks`}>{byColumn[col].length}</span>
                 </div>
-                {filteredTasks.filter(t => t.status === col).map(t => (
+                {byColumn[col].length === 0 && (
+                  <div className="kanban-empty">{draggingId ? 'Drop here' : 'No tasks'}</div>
+                )}
+                {byColumn[col].map(t => {
+                  const cs = cardState(t, today)
+                  return (
                   <div
                     key={t.taskId}
                     className={`kanban-card ${draggingId === t.taskId ? 'dragging' : ''} ${t.archived ? 'archived-card' : ''}`}
+                    data-status={t.status}
+                    data-state={cs.state}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={cardAriaLabel(t, statusMeta[col].label, today)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        openTask(t.taskId); goTo('task')
+                      }
+                    }}
                     draggable
                     onDragStart={e => {
                       e.dataTransfer.setData('text/plain', t.taskId)
@@ -145,16 +168,20 @@ function BoardPage({
                     onDragEnd={() => { setDraggingId(null); setDragOverCol(null) }}
                     onClick={() => { openTask(t.taskId); goTo('task') }}
                   >
-                    <div className="kanban-card-title">{t.archived ? '🗑 ' : ''}{t.title}</div>
-                    <div className="pills">
-                      <span className="pill sm" style={{ color: priorityMeta[t.priority].color, background: priorityMeta[t.priority].bg }}>
+                    <div className="kanban-card-title">{t.title}</div>
+                    <div className="kanban-card-meta">
+                      <span className="pill sm priority" style={{ color: priorityMeta[t.priority].color, background: priorityMeta[t.priority].bg }}>
                         {t.priority}
                       </span>
+                      {t.archived && <span className="kanban-card-tag">Archived</span>}
                       {t.assigneeId && <span className="pill sm assignee">{displayName(t.assigneeId)}</span>}
-                      {t.dueDate && <span className="pill sm">📅 {t.dueDate}</span>}
+                      {cs.dueText && (
+                        <span className={`kanban-card-due ${cs.dueSoon ? 'soon' : ''}`}>{cs.dueText}</span>
+                      )}
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             ))}
           </div>

@@ -1,8 +1,15 @@
-# React + Vite
+# ChainBoard: web client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite client for **ChainBoard**, a decentralized project management system built on
+Hyperledger Fabric (accounts, projects, tasks and their audit trails) and IPFS (attachments).
+Master's thesis project, Università di Genova (DIBRIS).
 
-Currently, two official plugins are available:
+```
+npm install
+npm run dev     # http://localhost:5173, proxies /api to the backend on :3000
+npm test        # unit tests for the screen logic (Node's built-in runner)
+npm run build   # production build into dist/ (served by the backend)
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+The backend lives in `../pm-backend` (`npm run dev` there restarts it on every change),
+the chaincode in `../pm-chaincode`. Design decisions per screen are in `docs/DESIGN.md`.
