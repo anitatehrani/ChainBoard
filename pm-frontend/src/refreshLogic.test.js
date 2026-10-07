@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { BASE_MS, MAX_MS, nextDelay, shouldRun, sameData, refreshTargets, mergeBoard } from './refreshLogic.js'
+// (mergeBoard is kept for the offline fallback and stays tested)
 
 test('nextDelay backs off and is capped', () => {
   assert.equal(nextDelay(0), BASE_MS)

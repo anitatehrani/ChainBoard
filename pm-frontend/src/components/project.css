@@ -3,6 +3,7 @@
 .project-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; margin: var(--s-3) 0; }
 .project-head .btn { min-height: var(--tap); }
 .meta-chip { border-radius: var(--r-pill); font-size: var(--fs-xs); }
+.role-note { font-size: var(--fs-sm); color: var(--text-dim); flex: 1; }
 
 .state-tag {
   display: inline-block; font-size: var(--fs-xs); font-weight: var(--fw-semibold);

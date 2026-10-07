@@ -1,0 +1,21 @@
+/* Audit verification panel. Tokens and theme variables only. */
+
+.audit { margin-top: var(--s-4); }
+.audit-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.audit-actions .btn { min-height: var(--tap); }
+
+.audit-result {
+  margin-top: var(--s-3); padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--border); border-left: 4px solid var(--text-faint);
+  border-radius: var(--r-md); font-size: var(--fs-sm); line-height: var(--lh-body);
+  overflow-wrap: anywhere;
+}
+.audit-result.good { border-left-color: var(--st-done); }
+.audit-result.bad { border-left-color: var(--st-overdue); }
+.audit-result.good strong { color: var(--success); }
+.audit-result.bad strong { color: var(--danger); }
+
+.audit-records { margin-top: var(--s-2); }
+.audit-records summary { cursor: pointer; min-height: var(--tap); display: flex; align-items: center; color: var(--accent-hover); }
+.audit-records summary:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-sm); }
+.audit-records ol { margin: var(--s-2) 0 0; padding-left: var(--s-5); font-family: 'JetBrains Mono', monospace; font-size: var(--fs-xs); color: var(--text-dim); }

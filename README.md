@@ -5,13 +5,15 @@ Accounts, projects, tasks and every change to them are blockchain transactions, 
 
 Master's thesis project, Università di Genova (DIBRIS). Advisor: Prof. Marina Ribaudo. Reviewer: Prof. Gianna Reggio.
 
-![tests](https://img.shields.io/badge/tests-190%20passing-brightgreen) ![node](https://img.shields.io/badge/node-%3E%3D20.9-blue) ![fabric](https://img.shields.io/badge/Hyperledger%20Fabric-2.x-informational) ![ipfs](https://img.shields.io/badge/IPFS-Kubo-lightgrey)
+![node](https://img.shields.io/badge/node-%3E%3D20.9-blue) ![fabric](https://img.shields.io/badge/Hyperledger%20Fabric-2.x-informational) ![ipfs](https://img.shields.io/badge/IPFS-Kubo-lightgrey)
 
 ---
 
 ## What it does
 
-- **Projects and roles.** Create a project, add people as owner, admin or contributor. Membership changes are on the ledger.
+- **Projects and roles, enforced by the chaincode.** Create a project, add people as owner, admin or contributor. The ledger itself decides who may do what: only owners and admins add members or archive tasks, only the owner archives a project, contributors work on tasks assigned to them or unassigned, and non-members can do nothing. The UI explains disabled buttons, but the chaincode is the authority.
+- **Verifiable history.** "Verify audit trail" on any task or project checks every transaction against the peer, computes a SHA-256 digest chain over the whole history, and lets you download the report. `npm run verify-audit -- report.json` re-checks it offline: any edited, removed or re-ordered record is detected.
+- **Boards read from the ledger.** A project's board is loaded from the chaincode (`getProjectTasks`), so it never depends on what one browser remembers.
 - **Kanban board.** To Do, In Progress and Done columns with drag and drop. Overdue, done and archived tasks are visible at a glance, in words as well as colour.
 - **Tasks.** Priorities, due dates, assignees, comments and file attachments (stored on IPFS).
 - **Tamper-evident audit trail.** Every task, project and account has a history built from Fabric's `getHistoryForKey`. The app turns it into sentences such as "Status To Do → In Progress" or "Sam joined as admin".
@@ -73,7 +75,7 @@ cd ~/fabric-samples/test-network
 ./network.sh deployCC -ccn pmcc -ccp ../dpm-project/pm-chaincode -ccl javascript -ccv 1.0 -ccs 1
 ```
 
-Redeploying after a chaincode change: increase both `-ccv` and `-ccs` (for example `-ccv 1.1 -ccs 2`). Changing the account schema is not backward compatible, so on a development machine start from a fresh network (`./network.sh down`) instead.
+Redeploying after a chaincode change: increase both `-ccv` and `-ccs` (for example `-ccv 1.1 -ccs 2`) and run the same `deployCC` command again. The permission change altered the arguments of the project and task functions, so deploy the chaincode and the backend together. If you are unsure, start from a fresh network (`./network.sh down`), which is the simplest on a development machine.
 
 ### 2. Start IPFS (for attachments)
 
@@ -117,16 +119,25 @@ The seed script uses the normal API, so everything it creates is a real transact
 
 The other demo users are `marco.rossi`, `giulia.bianchi`, `sara.conti` and `luca.ferrari`, with the same password. These are demo credentials for a local test network only. The ledger cannot be edited, so to start over, wipe the network (`./network.sh down`) and redeploy.
 
-> The kanban lists the task IDs saved in your browser for each project. After seeding, add the demo task IDs to a board with "Add existing Task ID" (`demo-t01` … `demo-t11` for *Thesis Platform*).
+Boards load their tasks from the ledger, so the seeded tasks appear as soon as you open a project.
 
 ## Tests
 
 ```bash
-cd pm-backend  && npm install && npm test    # 135 tests
-cd pm-frontend && npm test                   # 55 tests
+cd pm-backend  && npm install && npm test
+cd pm-frontend && npm test
 ```
 
-The backend tests run the **real chaincode** (`pm-chaincode/index.js`) on an in-memory mock stub behind the real Express app, so no Fabric network is needed. They cover sign-up and sign-in, sessions, CSRF, rate limiting, password rules (including a client/server parity check), Google sign-in, email confirmation, ownership from the session, and the task and project rules. The frontend tests cover the decision logic of every screen with Node's built-in runner, no browser needed.
+The backend tests run the **real chaincode** (`pm-chaincode/index.js`) on an in-memory mock stub behind the real Express app, so no Fabric network is needed. They cover sign-up and sign-in, sessions, CSRF, rate limiting, password rules (including a client/server parity check), Google sign-in, email confirmation, ownership from the session, role-based permissions, the audit digest chain, and the task and project rules. The frontend tests cover the decision logic of every screen with Node's built-in runner, no browser needed.
+
+## Evaluation
+
+```bash
+cd pm-backend && npm run benchmark     # write/read latency, throughput by concurrency, MVCC contention
+npm run verify-audit -- audit-task-demo-t01.json    # offline check of a downloaded audit report
+```
+
+Method, how to report results, and the threat model (what the blockchain does and does not protect against) are in [`pm-backend/docs/EVALUATION.md`](pm-backend/docs/EVALUATION.md).
 
 ## Security summary
 
@@ -140,7 +151,7 @@ pm-backend/      Express API, lib/ (passwords, sessions, ledger adapter, mailer�
 pm-frontend/     React + Vite client, src/*Logic.js (+ tests), src/components, src/design/tokens.css, docs/DESIGN.md
 ```
 
-More documentation: [`pm-backend/AUTH.md`](pm-backend/AUTH.md) (authentication design) and [`pm-frontend/docs/DESIGN.md`](pm-frontend/docs/DESIGN.md) (design decisions per screen).
+More documentation: [`pm-backend/AUTH.md`](pm-backend/AUTH.md) (authentication design), [`pm-backend/docs/EVALUATION.md`](pm-backend/docs/EVALUATION.md) (benchmark method and threat model) and [`pm-frontend/docs/DESIGN.md`](pm-frontend/docs/DESIGN.md) (design decisions per screen).
 
 ## Troubleshooting
 
@@ -148,7 +159,9 @@ More documentation: [`pm-backend/AUTH.md`](pm-backend/AUTH.md) (authentication d
 |---|---|
 | "The backend is not responding" in the browser | Backend is not running: `npm run dev` in `pm-backend` and read its terminal |
 | "Cross-site request blocked" | The dev proxy must keep the original Host. `pm-frontend/vite.config.js` sets `changeOrigin: false`; restart `npm run dev` |
-| Sign-up fails with "Expected: email, name, passwordHash…" | An older chaincode is still deployed. Redeploy v1.0 on a fresh network |
+| Sign-up fails with "Expected: email, name, passwordHash…" | An older chaincode is still deployed. Redeploy on a fresh network |
+| "Expected: … actorId" errors | The chaincode is older than the backend (or the other way round). Redeploy the chaincode from this repository |
+| "Permission denied: …" | Working as intended: the chaincode refused an action the person's role does not allow |
 | Attachments fail to upload | IPFS daemon not running, or the CORS settings from step 2 are missing |
 | Engine warning about Node 18 | Upgrade to Node 20 or newer |
 

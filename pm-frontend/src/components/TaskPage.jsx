@@ -1,5 +1,7 @@
 import { cardState, todayISO } from '../boardLogic'
 import { isAllowedMove, auditEntries } from '../taskLogic'
+import { canWorkOnTask, canAssignTask, canArchiveTask } from '../permissionLogic'
+import AuditVerifier from './AuditVerifier'
 import './task.css'
 
 // Old (pre-role) projects stored members as plain ID strings; new ones store
@@ -7,6 +9,7 @@ import './task.css'
 function memberId(m) { return typeof m === 'string' ? m : m.id }
 
 function TaskPage({
+  currentUser,
   selectedProject, selectedTask, history,
   loadTaskId, setLoadTaskId, loadTaskAndHistory, loadingTask,
   statusMeta, priorityMeta, columns, updateStatus,
@@ -20,6 +23,11 @@ function TaskPage({
 }) {
   const cs = selectedTask ? cardState(selectedTask, todayISO()) : null
   const entries = auditEntries(history, s => statusMeta[s]?.label || s)
+  // Mirrors the ledger's rules so buttons explain themselves; the chaincode still decides.
+  const inThisProject = !!(selectedProject && selectedTask && selectedProject.projectId === selectedTask.projectId)
+  const mayWork = inThisProject ? canWorkOnTask(selectedProject, selectedTask, currentUser.email) : { allowed: true, reason: '' }
+  const mayAssign = inThisProject ? canAssignTask(selectedProject, selectedTask, currentUser.email) : { allowed: true, reason: '' }
+  const mayArchive = inThisProject ? canArchiveTask(selectedProject, currentUser.email) : { allowed: true, reason: '' }
 
   return (
     <section className="card wide">
@@ -95,7 +103,8 @@ function TaskPage({
             <>
               <p className="preview-desc">{selectedTask.description}</p>
               {selectedTask.status !== 'done' && !selectedTask.archived && (
-                <button onClick={startEditMeta} className="btn btn-secondary sm">✎ Edit Details</button>
+                <button onClick={startEditMeta} className="btn btn-secondary sm"
+                  disabled={!mayWork.allowed} title={mayWork.reason}>Edit details</button>
               )}
             </>
           )}
@@ -103,13 +112,13 @@ function TaskPage({
           <div className="status-buttons" role="group" aria-label="Status">
             {columns.map(s => {
               const isCurrent = selectedTask.status === s
-              const allowed = isAllowedMove(selectedTask.status, s)
+              const allowed = isAllowedMove(selectedTask.status, s) && mayWork.allowed
               return (
                 <button key={s}
                   onClick={() => updateStatus(selectedTask.taskId, s)}
                   disabled={!allowed}
                   aria-pressed={isCurrent}
-                  title={!allowed ? 'That move isn’t allowed from the current status' : ''}
+                  title={!mayWork.allowed ? mayWork.reason : (!allowed ? 'That move isn’t allowed from the current status' : '')}
                   className={`status-btn ${isCurrent ? 'active' : ''}`}>
                   {isCurrent ? '✓ ' : ''}{statusMeta[s].label}
                 </button>
@@ -126,7 +135,9 @@ function TaskPage({
                   return <option key={id} value={id}>{displayName(id)}</option>
                 })}
               </select>
-              <button onClick={assignTask} className="btn btn-accent sm" disabled={!assignTo}>Assign</button>
+              <button onClick={assignTask} className="btn btn-accent sm"
+                disabled={!assignTo || !canAssignTask(selectedProject, selectedTask, currentUser.email, assignTo).allowed}
+                title={assignTo ? canAssignTask(selectedProject, selectedTask, currentUser.email, assignTo).reason : ''}>Assign</button>
             </div>
           )}
 
@@ -136,7 +147,8 @@ function TaskPage({
             <label htmlFor="fileInput" className="file-label">
               {uploadFile ? uploadFile.name : 'Choose a file'}
             </label>
-            <button onClick={uploadAndAttach} disabled={!uploadFile || uploading} className="btn btn-primary">
+            <button onClick={uploadAndAttach} disabled={!uploadFile || uploading || !mayWork.allowed}
+              title={mayWork.reason} className="btn btn-primary">
               {uploading ? 'Uploading to IPFS…' : 'Attach to Task'}
             </button>
           </div>
@@ -175,7 +187,8 @@ function TaskPage({
           </div>
 
           {!selectedTask.archived && (
-            <button onClick={() => archiveTask(selectedTask.taskId)} className="btn btn-danger sm archive-task-btn">
+            <button onClick={() => archiveTask(selectedTask.taskId)} className="btn btn-danger sm archive-task-btn"
+              disabled={!mayArchive.allowed} title={mayArchive.reason}>
               Archive task
             </button>
           )}
@@ -188,6 +201,7 @@ function TaskPage({
             <span className="lock-icon" aria-hidden="true">🔒</span>
             Immutable audit trail — {history.length} on-chain record{history.length > 1 ? 's' : ''}
           </div>
+          <AuditVerifier kind="task" id={selectedTask ? selectedTask.taskId : history[0]?.value?.taskId} key={selectedTask ? selectedTask.taskId : 'none'} />
           <ol className="timeline-list" aria-label="Audit trail, newest first">
           {entries.map(e => (
             <li key={e.txId || e.n} className="timeline-item">

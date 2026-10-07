@@ -1,9 +1,12 @@
 import {
   memberId, memberRole, avatarColor, initial, sortMembers, roleSummary, roleHelp, projectAuditEntries
 } from '../projectLogic'
+import { canAddMember, canArchiveProject, roleLabel } from '../permissionLogic'
+import AuditVerifier from './AuditVerifier'
 import './project.css'
 
 function ProjectPage({
+  currentUser,
   selectedProject, isArchived, archiveProject,
   newMember, setNewMember, newMemberRole, setNewMemberRole, addMember,
   loadProjectHistory, loadingProjHistory, showProjectHistory, projectHistory,
@@ -44,7 +47,10 @@ function ProjectPage({
         <span className="state-tag" data-state={isArchived ? 'archived' : 'active'}>
           {selectedProject.status}
         </span>
-        <button onClick={archiveProject} className="btn btn-danger sm" disabled={isArchived}>
+        <span className="role-note">{roleLabel(selectedProject, currentUser.email)}</span>
+        <button onClick={archiveProject} className="btn btn-danger sm"
+          disabled={!canArchiveProject(selectedProject, currentUser.email).allowed}
+          title={canArchiveProject(selectedProject, currentUser.email).reason}>
           Archive Project
         </button>
       </div>
@@ -107,8 +113,16 @@ function ProjectPage({
                   <option value="owner">Owner</option>
                 </select>
               </label>
-              <button type="submit" className="btn btn-secondary sm" disabled={!newMember}>Add Member</button>
+              <button type="submit" className="btn btn-secondary sm"
+                disabled={!newMember || !canAddMember(selectedProject, currentUser.email, newMemberRole).allowed}>
+                Add Member
+              </button>
             </form>
+            {!canAddMember(selectedProject, currentUser.email, newMemberRole).allowed && (
+              <p className="context-line" role="status" style={{ marginTop: 8 }}>
+                {canAddMember(selectedProject, currentUser.email, newMemberRole).reason}
+              </p>
+            )}
             {availableUsers.length === 0 && (
               <p className="context-line" style={{ marginTop: 8 }}>
                 Everyone with an account is already a member of this project.
@@ -123,6 +137,8 @@ function ProjectPage({
       <button onClick={loadProjectHistory} className="btn btn-secondary sm history-toggle" disabled={loadingProjHistory}>
         {loadingProjHistory ? '…' : (showProjectHistory ? 'Refresh Project History' : 'View Project History')}
       </button>
+
+      <AuditVerifier kind="project" id={selectedProject.projectId} key={selectedProject.projectId} />
 
       {showProjectHistory && projectHistory.length > 0 && (
         <div className="timeline compact">

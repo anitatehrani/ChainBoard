@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { cardState, cardAriaLabel, filterTasks, groupByColumn, todayISO } from '../boardLogic'
+import { canCreateTask } from '../permissionLogic'
 import './board.css'
 
 // Old (pre-role) projects stored members as plain ID strings; new ones store
@@ -7,9 +8,9 @@ import './board.css'
 function memberId(m) { return typeof m === 'string' ? m : m.id }
 
 function BoardPage({
+  currentUser,
   selectedProject, isArchived,
   tForm, setTForm, createTask,
-  addBoardId, setAddBoardId, addExistingTaskToBoard,
   loadingBoard, boardTasks, statusMeta, priorityMeta, columns,
   displayName, updateStatus,
   showArchivedTasks, setShowArchivedTasks,
@@ -69,7 +70,9 @@ function BoardPage({
           </select>
           <input type="date" title="Due date (optional)" value={tForm.dueDate}
             onChange={e => setTForm({ ...tForm, dueDate: e.target.value })} />
-          <button type="submit" className="btn btn-success" disabled={isArchived}>Create Task</button>
+          <button type="submit" className="btn btn-success"
+            disabled={isArchived || !canCreateTask(selectedProject, currentUser.email).allowed}
+            title={canCreateTask(selectedProject, currentUser.email).reason}>Create Task</button>
         </form>
       </section>
 
@@ -78,14 +81,9 @@ function BoardPage({
           <span className="card-badge project">Board</span>
           <h2>Task Board</h2>
         </div>
-        <p className="board-hint">Drag a card between columns to change its status. Select a card to open it.</p>
+        <p className="board-hint">Tasks are read from the ledger. Drag a card between columns to change its status; select a card to open it.</p>
 
         <div className="board-tools">
-        <div className="load-row">
-          <input placeholder="Add existing Task ID to this board" aria-label="Task ID to add to this board" value={addBoardId}
-            onChange={e => setAddBoardId(e.target.value)} />
-          <button onClick={addExistingTaskToBoard} className="btn btn-secondary">Add</button>
-        </div>
 
         {boardTasks.length > 0 && (
           <div className="filter-bar" role="group" aria-label="Board filters">
@@ -119,7 +117,7 @@ function BoardPage({
         {loadingBoard ? (
           <div className="context-line">Loading tasks…</div>
         ) : boardTasks.length === 0 ? (
-          <div className="context-line">No tasks tracked on this board yet — create one above, or add an existing Task ID.</div>
+          <div className="context-line">This project has no tasks yet — create the first one above.</div>
         ) : filteredTasks.length === 0 ? (
           <div className="context-line">No tasks match the current filters.</div>
         ) : (

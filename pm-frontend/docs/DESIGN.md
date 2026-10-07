@@ -256,3 +256,42 @@ Refresh only issues the same GET requests the screens already use. It never writ
 
 - `src/refreshLogic.js`: `nextDelay`, `shouldRun`, `sameData`, `refreshTargets`, `mergeBoard`. `src/refreshLogic.test.js`: run with `npm test`.
 - `src/lib/useAutoRefresh.js` (timer, visibility and online handling, no overlapping runs); `App.jsx` `refreshOpenScreen` does the reads.
+
+## 10. Permissions (ledger-enforced, mirrored in the UI)
+
+### Why
+
+Who may do what inside a project was decided by the backend only. A bug or a direct call could bypass it. Now the **chaincode** checks the role of the acting person on every state-changing call, and the UI mirrors those rules so buttons explain themselves.
+
+### The rules (same table in `pm-chaincode/index.js` and `src/permissionLogic.js`)
+
+| Action | Owner | Admin | Contributor | Not a member |
+|---|---|---|---|---|
+| Add a member | any role | contributors only | no | no |
+| Archive the project | yes | no | no | no |
+| Create a task | yes | yes | yes | no |
+| Assign a task | anyone | anyone | only themselves, only if free | no |
+| Change status, edit details, attach files | any task | any task | tasks assigned to them or unassigned | no |
+| Archive a task | yes | yes | no | no |
+| Comment | yes | yes | yes | no |
+
+A project that is archived is read-only. Refusals come back as HTTP 403 with a sentence starting "Permission denied: …".
+
+### UI behaviour
+
+Disabled buttons carry the reason as a tooltip and, where space allows, as visible text ("Only the owner or an admin can add members."). The project header shows "Your role: admin". The UI check is a convenience only: the chaincode refuses anything not allowed.
+
+### Where the logic is
+
+- `pm-chaincode/index.js`: `roleOf`, `isManager`, `canWorkOnTask`, checks in every state-changing function; the actor is the last argument and the backend fills it from the verified session (never from the request body).
+- `src/permissionLogic.js` + `src/permissionLogic.test.js`; `pm-backend/test/permissions.test.js` proves the contract (all roles, outsiders, legacy members, body cannot name another actor).
+
+## 11. Boards read from the ledger
+
+Boards used to list only the task IDs remembered by one browser. `getProjectTasks` (a range scan over `task:` keys filtered by project) now returns every task of the project, exposed as `GET /api/projects/:id/tasks`. `refreshBoard` and the automatic refresh use it; the old per-browser list remains only as an offline fallback. The "Add existing Task ID" row is gone because it is no longer needed.
+
+## 12. Audit verification panel
+
+On the Task and Project screens, **Verify audit trail** asks the backend for `GET /api/tasks/:id/audit` (or projects): the full history, a SHA-256 digest chain over it (`lib/audit.js`), and a per-transaction check against the peer (`qscc GetTransactionByID`). The result is shown in words ("Verified. All 3 records are in committed blocks on the ledger. Fingerprint: 1a2b3c4d…") with an expandable list of transactions, and **Download audit report** saves the JSON. `npm run verify-audit -- file.json` re-checks a downloaded file offline.
+
+Logic: `src/auditLogic.js` (+ test), `src/components/AuditVerifier.jsx`, `src/components/audit.css`; backend `lib/audit.js`, `test/audit.test.js`.

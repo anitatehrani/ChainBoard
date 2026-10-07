@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAutoRefresh } from './lib/useAutoRefresh'
-import { refreshTargets, sameData, mergeBoard } from './refreshLogic'
+import { refreshTargets, sameData } from './refreshLogic'
 import './App.css'
 import Nav from './components/Nav'
 import AuthPage from './components/AuthPage'
@@ -262,13 +262,9 @@ function App() {
     }
     if (targets.includes('board') && selectedProject) {
       const projectId = selectedProject.projectId
-      const ids = getBoardIds(projectId)
-      jobs.push(Promise.all(ids.map(id => get(`${API}/tasks/${id}`).catch(() => null))).then(fresh => {
+      jobs.push(get(`${API}/projects/${projectId}/tasks`).then(list => {
         if (selectedProjectRef.current !== projectId) return // switched project meanwhile
-        setBoardTasks(prev => {
-          const merged = mergeBoard(ids, fresh, prev)
-          return sameData(prev, merged) ? prev : merged
-        })
+        setBoardTasks(prev => (sameData(prev, list) ? prev : list))
       }))
     }
     if (targets.includes('task') && selectedTask) {
@@ -302,9 +298,20 @@ function App() {
   }
 
   async function refreshBoard(projectId) {
-    const ids = getBoardIds(projectId)
-    if (ids.length === 0) { setBoardTasks([]); return }
+    // The ledger is the source of truth: ask it for every task of the project.
     setLoadingBoard(true)
+    try {
+      const res = await authFetch(`${API}/projects/${projectId}/tasks`)
+      if (res.ok) {
+        const list = await res.json()
+        setBoardTasks(list)
+        setLoadingBoard(false)
+        return
+      }
+    } catch { /* fall back to the list remembered by this browser */ }
+
+    const ids = getBoardIds(projectId)
+    if (ids.length === 0) { setBoardTasks([]); setLoadingBoard(false); return }
     const results = await Promise.all(
       ids.map(id => authFetch(`${API}/tasks/${id}`).then(r => r.ok ? r.json() : null).catch(() => null))
     )
@@ -676,6 +683,7 @@ function App() {
 
       {page === 'project' && (
         <ProjectPage
+          currentUser={currentUser}
           selectedProject={selectedProject} isArchived={isArchived} archiveProject={archiveProject}
           newMember={newMember} setNewMember={setNewMember}
           newMemberRole={newMemberRole} setNewMemberRole={setNewMemberRole} addMember={addMember}
@@ -689,9 +697,9 @@ function App() {
 
       {page === 'board' && (
         <BoardPage
+          currentUser={currentUser}
           selectedProject={selectedProject} isArchived={isArchived}
           tForm={tForm} setTForm={setTForm} createTask={createTask}
-          addBoardId={addBoardId} setAddBoardId={setAddBoardId} addExistingTaskToBoard={addExistingTaskToBoard}
           loadingBoard={loadingBoard} boardTasks={boardTasks}
           statusMeta={statusMeta} priorityMeta={priorityMeta} columns={columns}
           displayName={displayName} updateStatus={updateStatus}
@@ -702,6 +710,7 @@ function App() {
 
       {page === 'task' && (
         <TaskPage
+          currentUser={currentUser}
           selectedProject={selectedProject} selectedTask={selectedTask} history={history}
           loadTaskId={loadTaskId} setLoadTaskId={setLoadTaskId}
           loadTaskAndHistory={loadTaskAndHistory} loadingTask={loadingTask}
