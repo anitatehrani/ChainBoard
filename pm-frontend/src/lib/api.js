@@ -3,6 +3,8 @@
 // /api to the backend (see vite.config.js), in production the backend serves
 // the built client itself.
 
+import { busy, isMutating } from './busy.js'
+
 export const API = '/api'
 
 export class ApiError extends Error {
@@ -26,7 +28,14 @@ export async function apiFetch(path, options = {}) {
     init.body = JSON.stringify(json)
     headers['Content-Type'] = 'application/json'
   }
-  const res = await fetch(url, init)
+  // State-changing requests hold the global lock until the server answers.
+  const release = isMutating(init.method) ? busy.begin() : null
+  let res
+  try {
+    res = await fetch(url, init)
+  } finally {
+    if (release) release()
+  }
   if (res.status === 401 && !url.startsWith(`${API}/auth/`)) {
     window.dispatchEvent(new Event('auth:expired'))
   }

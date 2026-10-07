@@ -137,6 +137,28 @@ input:focus, textarea:focus, select:focus {
 .btn:hover { opacity: 0.88; }
 .btn:active { transform: scale(0.98); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── request in flight: everything is locked, the clicked button spins ── */
+html[data-busy='true'] button:not([data-loading]):not(.toast-close),
+html[data-busy='true'] .kanban-card { cursor: progress; }
+html[data-busy='true'] button:not([data-loading]):not(.toast-close) { opacity: 0.55; }
+html[data-busy='true'] .kanban-card { pointer-events: none; opacity: 0.7; }
+button[data-loading='true'] {
+  position: relative; cursor: progress; pointer-events: none;
+  color: transparent !important;            /* hide the label, keep the width */
+}
+button[data-loading='true']::after {
+  content: ''; position: absolute; left: 50%; top: 50%;
+  width: 16px; height: 16px; margin: -8px 0 0 -8px;
+  border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: #fff;
+  border-radius: 50%; animation: btn-spin 0.7s linear infinite;
+}
+button[data-loading='true'] svg { opacity: 0; }
+.btn-success[data-loading='true']::after, .btn-secondary[data-loading='true']::after {
+  border-color: rgba(128, 128, 128, 0.35); border-top-color: var(--text);
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { button[data-loading='true']::after { animation-duration: 2s; } }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
 .btn-success { background: var(--success); color: #06210f; }

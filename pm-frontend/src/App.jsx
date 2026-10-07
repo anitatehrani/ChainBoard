@@ -18,6 +18,7 @@ import BoardPage from './components/BoardPage'
 import TaskPage from './components/TaskPage'
 import { useAuth } from './auth/AuthContext'
 import { API, apiFetch } from './lib/api'
+import { busy } from './lib/busy'
 
 // ── local board-tracking helpers (client-side convenience index over on-chain data) ──
 function getBoardIds(projectId) {
@@ -566,11 +567,15 @@ function App() {
       const formData = new FormData()
       formData.append('file', uploadFile)
 
-      const ipfsRes = await fetch('http://127.0.0.1:5001/api/v0/add', {
-        method: 'POST',
-        body: formData
+      // The IPFS upload is not an API call, so it takes the lock explicitly;
+      // otherwise a second click could start another upload during the gap.
+      const ipfsData = await busy.run(async () => {
+        const ipfsRes = await fetch('http://127.0.0.1:5001/api/v0/add', {
+          method: 'POST',
+          body: formData
+        })
+        return ipfsRes.json()
       })
-      const ipfsData = await ipfsRes.json()
       const cid = ipfsData.Hash
 
       const res = await authFetch(`${API}/tasks/${selectedTask.taskId}/files`, {
@@ -635,7 +640,7 @@ function App() {
 
       <Nav page={page} setPage={setPage} hasProject={!!selectedProject} hasTask={!!selectedTask} />
 
-      <div className="toast-stack">
+      <div className="toast-stack" data-allow-while-busy>
         {toasts.map(t => (
           <div key={t.id} className={`toast ${t.type}`}>
             <span className="toast-icon">{t.type === 'error' ? '⚠' : '✓'}</span>
