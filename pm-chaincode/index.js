@@ -48,7 +48,44 @@ function txTime(stub) {
     return new Date(secs * 1000).toISOString();
 }
 
+// ── Permissions ──────────────────────────────────────────────────────────────
+// The LEDGER decides who may do what inside a project, not just the backend.
+// Every state-changing project/task function takes the acting person's id as its
+// LAST argument; the backend fills it in from the verified login session.
+// (Fabric itself only knows the backend's single organisation identity, so the
+// chaincode cannot see the end user by itself. The actor id is therefore trusted
+// as far as the backend is trusted; see docs/EVALUATION.md, threat model.)
+//
+//   owner        everything, including archiving the project and granting any role
+//   admin        add contributors, assign anyone, archive tasks, work on any task
+//   contributor  create tasks, comment, and work on tasks assigned to them or unassigned
+//   not a member nothing
+const MANAGER_ROLES = ['owner', 'admin'];
+
+// Old (pre-role) projects stored members as plain id strings: treat those as contributors.
+function roleOf(project, id) {
+    const found = (project.members || []).find(m => (typeof m === 'string' ? m : m.id) === id);
+    if (!found) return null;
+    return typeof found === 'string' ? 'contributor' : (found.role || 'contributor');
+}
+function isManager(role) { return MANAGER_ROLES.includes(role); }
+// May this person change this particular task (status, details, files)?
+function canWorkOnTask(role, task, actorId) {
+    if (!role) return false;
+    return isManager(role) || !task.assigneeId || task.assigneeId === actorId;
+}
+function validActor(actorId) {
+    return typeof actorId === 'string' && actorId.trim().length > 0;
+}
+
 const PMChaincode = class {
+
+    // Loads a project or returns null. Used by the permission checks.
+    async _getProject(stub, projectId) {
+        const data = await stub.getState(projectKey(projectId));
+        if (!data || data.length === 0) return null;
+        return JSON.parse(data.toString());
+    }
 
     async Init(stub) {
         console.log('PM Chaincode initialized');
@@ -64,6 +101,7 @@ const PMChaincode = class {
         if (fcn === 'addProjectMember')  return this.addProjectMember(stub, params);
         if (fcn === 'archiveProject')    return this.archiveProject(stub, params);
         if (fcn === 'getProjectHistory') return this.getProjectHistory(stub, params);
+        if (fcn === 'getProjectTasks')   return this.getProjectTasks(stub, params);
 
         // Task functions
         if (fcn === 'createTask')        return this.createTask(stub, params);
@@ -145,17 +183,30 @@ const PMChaincode = class {
     }
 
     async addProjectMember(stub, params) {
-        if (params.length !== 3) return shim.error('Expected: projectId, memberId, role');
-        const [projectId, memberId, role] = params;
+        if (params.length !== 4) return shim.error('Expected: projectId, memberId, role, actorId');
+        const [projectId, memberId, role, actorId] = params;
 
         const validRoles = ['owner', 'admin', 'contributor'];
         if (!validRoles.includes(role)) return shim.error(`Role must be one of: owner, admin, contributor`);
+        if (!validActor(actorId)) return shim.error('Missing actor');
 
         const data = await stub.getState(projectKey(projectId));
         if (!data || data.length === 0) return shim.error(`Project ${projectId} does not exist`);
 
         const project = JSON.parse(data.toString());
-        if (project.members.some(m => m.id === memberId)) return shim.error(`Member ${memberId} already in project`);
+
+        const actorRole = roleOf(project, actorId);
+        if (!isManager(actorRole)) {
+            return shim.error('Permission denied: only project owners and admins can add members');
+        }
+        if (actorRole === 'admin' && role !== 'contributor') {
+            return shim.error('Permission denied: admins can only add contributors; ask the owner to grant a higher role');
+        }
+        if (project.status === 'archived') return shim.error(`Project ${projectId} is archived (read-only)`);
+
+        if (project.members.some(m => (typeof m === 'string' ? m : m.id) === memberId)) {
+            return shim.error(`Member ${memberId} already in project`);
+        }
 
         project.members.push({ id: memberId, role });
         await stub.putState(projectKey(projectId), Buffer.from(JSON.stringify(project)));
@@ -164,11 +215,15 @@ const PMChaincode = class {
     }
 
     async archiveProject(stub, params) {
-        if (params.length !== 1) return shim.error('Expected: projectId');
+        if (params.length !== 2) return shim.error('Expected: projectId, actorId');
+        if (!validActor(params[1])) return shim.error('Missing actor');
         const data = await stub.getState(projectKey(params[0]));
         if (!data || data.length === 0) return shim.error(`Project ${params[0]} does not exist`);
 
         const project = JSON.parse(data.toString());
+        if (roleOf(project, params[1]) !== 'owner') {
+            return shim.error('Permission denied: only the project owner can archive the project');
+        }
         if (project.status === 'archived') return shim.error(`Project ${params[0]} is already archived`);
 
         project.status = 'archived';
@@ -194,13 +249,36 @@ const PMChaincode = class {
         return shim.success(Buffer.from(JSON.stringify(history)));
     }
 
+    // Every task of one project. LevelDB has no queries, but it does support a plain
+    // range scan over a key prefix, so this walks all "task:" keys and keeps the
+    // ones that belong to the project. This is what lets a board load its tasks
+    // from the ledger instead of from a list remembered by the browser.
+    async getProjectTasks(stub, params) {
+        if (params.length !== 1) return shim.error('Expected: projectId');
+        const project = await this._getProject(stub, params[0]);
+        if (!project) return shim.error(`Project ${params[0]} does not exist`);
+
+        const iterator = await stub.getStateByRange('task:', 'task:~');
+        const tasks = [];
+        while (true) {
+            const result = await iterator.next();
+            if (result.done) break;
+            const task = JSON.parse(result.value.value.toString());
+            if (task.projectId === params[0]) tasks.push(task);
+        }
+        await iterator.close();
+        tasks.sort((a, b) => (a.taskId < b.taskId ? -1 : a.taskId > b.taskId ? 1 : 0));
+        return shim.success(Buffer.from(JSON.stringify(tasks)));
+    }
+
     // ─────────────────────────────────────────────
     // TASK FUNCTIONS
     // ─────────────────────────────────────────────
 
     async createTask(stub, params) {
-        if (params.length !== 6) return shim.error('Expected: taskId, projectId, title, description, priority, dueDate');
-        const [taskId, projectId, title, description, priority, dueDate] = params;
+        if (params.length !== 7) return shim.error('Expected: taskId, projectId, title, description, priority, dueDate, actorId');
+        const [taskId, projectId, title, description, priority, dueDate, actorId] = params;
+        if (!validActor(actorId)) return shim.error('Missing actor');
 
         // Verify project exists
         const projectData = await stub.getState(projectKey(projectId));
@@ -208,6 +286,9 @@ const PMChaincode = class {
 
         // Verify project is active
         const project = JSON.parse(projectData.toString());
+        if (!roleOf(project, actorId)) {
+            return shim.error('Permission denied: only project members can create tasks');
+        }
         if (project.status === 'archived') return shim.error(`Cannot add tasks to archived project ${projectId}`);
 
         // Verify task does not already exist
@@ -241,9 +322,27 @@ const PMChaincode = class {
         return shim.success(data);
     }
 
+    // Loads a task and its project, and checks that the actor may work on it.
+    // Returns { task, project, role } or { error }.
+    async _taskForWork(stub, taskId, actorId, what) {
+        if (!validActor(actorId)) return { error: 'Missing actor' };
+        const data = await stub.getState(taskKey(taskId));
+        if (!data || data.length === 0) return { error: `Task ${taskId} does not exist` };
+        const task = JSON.parse(data.toString());
+        const project = await this._getProject(stub, task.projectId);
+        if (!project) return { error: `Project ${task.projectId} does not exist` };
+        const role = roleOf(project, actorId);
+        if (!role) return { error: `Permission denied: only project members can ${what}` };
+        if (!canWorkOnTask(role, task, actorId)) {
+            return { error: `Permission denied: this task is assigned to someone else; only the assignee, an admin or the owner can ${what}` };
+        }
+        return { task, project, role };
+    }
+
     async assignTask(stub, params) {
-        if (params.length !== 2) return shim.error('Expected: taskId, assigneeId');
-        const [taskId, assigneeId] = params;
+        if (params.length !== 3) return shim.error('Expected: taskId, assigneeId, actorId');
+        const [taskId, assigneeId, actorId] = params;
+        if (!validActor(actorId)) return shim.error('Missing actor');
 
         const data = await stub.getState(taskKey(taskId));
         if (!data || data.length === 0) return shim.error(`Task ${taskId} does not exist`);
@@ -254,7 +353,16 @@ const PMChaincode = class {
         // Verify assignee is a member of the project
         const projectData = await stub.getState(projectKey(task.projectId));
         const project = JSON.parse(projectData.toString());
-        if (!project.members.some(m => m.id === assigneeId)) {
+        const actorRole = roleOf(project, actorId);
+        if (!actorRole) return shim.error('Permission denied: only project members can assign tasks');
+        // Owners and admins may assign anyone; a contributor may only take a task for themselves.
+        if (!isManager(actorRole) && assigneeId !== actorId) {
+            return shim.error('Permission denied: contributors can only assign tasks to themselves');
+        }
+        if (!isManager(actorRole) && task.assigneeId && task.assigneeId !== actorId) {
+            return shim.error('Permission denied: this task is assigned to someone else');
+        }
+        if (!roleOf(project, assigneeId)) {
             return shim.error(`User ${assigneeId} is not a member of project ${task.projectId}`);
         }
 
@@ -264,18 +372,17 @@ const PMChaincode = class {
     }
 
     async updateTaskStatus(stub, params) {
-        if (params.length !== 2) return shim.error('Expected: taskId, newStatus');
-        const [taskId, newStatus] = params;
+        if (params.length !== 3) return shim.error('Expected: taskId, newStatus, actorId');
+        const [taskId, newStatus, actorId] = params;
 
         const validStatuses = ['todo', 'in-progress', 'done'];
         if (!validStatuses.includes(newStatus)) {
             return shim.error(`Status must be one of: todo, in-progress, done`);
         }
 
-        const data = await stub.getState(taskKey(taskId));
-        if (!data || data.length === 0) return shim.error(`Task ${taskId} does not exist`);
-
-        const task = JSON.parse(data.toString());
+        const ctx = await this._taskForWork(stub, taskId, actorId, 'change its status');
+        if (ctx.error) return shim.error(ctx.error);
+        const task = ctx.task;
 
         // Enforce valid status transitions.
         // 'done' can be reopened back to 'in-progress' or 'todo' if more work
@@ -297,8 +404,8 @@ const PMChaincode = class {
     }
 
     async updateTaskMeta(stub, params) {
-        if (params.length !== 3) return shim.error('Expected: taskId, field, value');
-        const [taskId, field, value] = params;
+        if (params.length !== 4) return shim.error('Expected: taskId, field, value, actorId');
+        const [taskId, field, value, actorId] = params;
 
         const editableFields = ['title', 'description', 'priority', 'dueDate'];
         if (!editableFields.includes(field)) {
@@ -312,10 +419,9 @@ const PMChaincode = class {
             }
         }
 
-        const data = await stub.getState(taskKey(taskId));
-        if (!data || data.length === 0) return shim.error(`Task ${taskId} does not exist`);
-
-        const task = JSON.parse(data.toString());
+        const ctx = await this._taskForWork(stub, taskId, actorId, 'edit its details');
+        if (ctx.error) return shim.error(ctx.error);
+        const task = ctx.task;
         if (task.status === 'done') return shim.error(`Cannot edit a completed task`);
 
         task[field] = value;
@@ -327,11 +433,16 @@ const PMChaincode = class {
         // A ledger can't truly delete history, so "deleting" a task means
         // marking it archived — it drops off the active board but its full
         // history remains permanently on-chain, same pattern as archiveProject.
-        if (params.length !== 1) return shim.error('Expected: taskId');
+        if (params.length !== 2) return shim.error('Expected: taskId, actorId');
+        if (!validActor(params[1])) return shim.error('Missing actor');
         const data = await stub.getState(taskKey(params[0]));
         if (!data || data.length === 0) return shim.error(`Task ${params[0]} does not exist`);
 
         const task = JSON.parse(data.toString());
+        const project = await this._getProject(stub, task.projectId);
+        if (!project || !isManager(roleOf(project, params[1]))) {
+            return shim.error('Permission denied: only project owners and admins can archive tasks');
+        }
         if (task.archived) return shim.error(`Task ${params[0]} is already archived`);
 
         task.archived = true;
@@ -342,12 +453,18 @@ const PMChaincode = class {
     async addComment(stub, params) {
         if (params.length !== 3) return shim.error('Expected: taskId, authorId, text');
         const [taskId, authorId, text] = params;
+        if (!validActor(authorId)) return shim.error('Missing actor');
         if (!text || !text.trim()) return shim.error('Comment text cannot be empty');
 
         const data = await stub.getState(taskKey(taskId));
         if (!data || data.length === 0) return shim.error(`Task ${taskId} does not exist`);
 
         const task = JSON.parse(data.toString());
+        // Any project member may comment (the author id IS the actor).
+        const project = await this._getProject(stub, task.projectId);
+        if (!project || !roleOf(project, authorId)) {
+            return shim.error('Permission denied: only project members can comment');
+        }
         // No timestamp is generated here (each peer would compute a different
         // one, breaking endorsement) — comment order is recovered from the
         // audit trail's transaction sequence instead, same as everywhere else.
@@ -380,13 +497,12 @@ const PMChaincode = class {
     // ─────────────────────────────────────────────
 
     async attachFile(stub, params) {
-        if (params.length !== 3) return shim.error('Expected: taskId, fileName, ipfsCid');
-        const [taskId, fileName, ipfsCid] = params;
+        if (params.length !== 4) return shim.error('Expected: taskId, fileName, ipfsCid, actorId');
+        const [taskId, fileName, ipfsCid, actorId] = params;
 
-        const data = await stub.getState(taskKey(taskId));
-        if (!data || data.length === 0) return shim.error(`Task ${taskId} does not exist`);
-
-        const task = JSON.parse(data.toString());
+        const ctx = await this._taskForWork(stub, taskId, actorId, 'attach files');
+        if (ctx.error) return shim.error(ctx.error);
+        const task = ctx.task;
         if (task.status === 'done') return shim.error(`Cannot attach files to a completed task`);
 
         // Check for duplicate CID
