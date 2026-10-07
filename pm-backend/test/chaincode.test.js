@@ -236,7 +236,7 @@ describe('directory and audit trail', () => {
         await register();
         await register({ email: 'bob@example.com', username: 'bob.b' });
         await ledger.submit('createProject', 'p1', 'Thesis', 'desc', 'ann@example.com');
-        await ledger.submit('addProjectMember', 'p1', 'bob@example.com', 'contributor');
+        await ledger.submit('addProjectMember', 'p1', 'bob@example.com', 'contributor', 'ann@example.com');
         assert.deepEqual((await ledger.evaluate('getMyProjects', 'ann@example.com')).map(p => p.projectId), ['p1']);
         assert.deepEqual((await ledger.evaluate('getMyProjects', 'bob@example.com')).map(p => p.projectId), ['p1']);
     });

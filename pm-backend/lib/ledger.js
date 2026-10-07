@@ -54,9 +54,11 @@ function createFabricLedger(config) {
     );
     const TLS_CERT = path.join(crypto_path, 'peers/peer0.org1.example.com/tls/ca.crt');
     const KEY_DIR = path.join(crypto_path, 'users/Admin@org1.example.com/msp/keystore');
-    const CERT_PATH = path.join(crypto_path, 'users/Admin@org1.example.com/msp/signcerts/cert.pem');
+    // cryptogen names it "Admin@org1.example.com-cert.pem"; Fabric CA names it "cert.pem".
+    const CERT_DIR = path.join(crypto_path, 'users/Admin@org1.example.com/msp/signcerts');
+    const certFile = () => path.join(CERT_DIR, fs.readdirSync(CERT_DIR).find(f => f.endsWith('.pem')));
 
-    async function withContract(work) {
+    async function withContract(work, chaincodeName = config.chaincode) {
         const tls = grpc.credentials.createSsl(fs.readFileSync(TLS_CERT));
         const client = new grpc.Client(config.peerAddr, tls, {
             'grpc.ssl_target_name_override': config.peerHost
@@ -65,12 +67,12 @@ function createFabricLedger(config) {
         const privateKey = crypto.createPrivateKey(fs.readFileSync(path.join(KEY_DIR, keyFile)));
         const gateway = connect({
             client,
-            identity: { mspId: config.mspId, credentials: fs.readFileSync(CERT_PATH) },
+            identity: { mspId: config.mspId, credentials: fs.readFileSync(certFile()) },
             signer: signers.newPrivateKeySigner(privateKey),
             hash: hash.sha256
         });
         try {
-            const contract = gateway.getNetwork(config.channel).getContract(config.chaincode);
+            const contract = gateway.getNetwork(config.channel).getContract(chaincodeName);
             return await work(contract);
         } finally {
             gateway.close();
@@ -90,9 +92,26 @@ function createFabricLedger(config) {
         }
     }
 
+    // Asks the peer's system chaincode (qscc) whether a transaction id is in a committed block.
+    //   true  = found, false = the peer says it does not know it, null = could not ask.
+    async function checkTx(txId) {
+        try {
+            const bytes = await withContract(
+                qscc => qscc.evaluateTransaction('GetTransactionByID', config.channel, String(txId)),
+                'qscc'
+            );
+            return Buffer.from(bytes).length > 0;
+        } catch (err) {
+            const message = formatError(err);
+            if (/not found|no such transaction|could not find/i.test(message)) return false;
+            return null;
+        }
+    }
+
     return {
         submit: (fn, ...args) => run('submitTransaction', fn, args),
-        evaluate: (fn, ...args) => run('evaluateTransaction', fn, args)
+        evaluate: (fn, ...args) => run('evaluateTransaction', fn, args),
+        checkTx
     };
 }
 

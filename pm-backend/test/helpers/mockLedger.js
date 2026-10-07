@@ -99,6 +99,16 @@ class MockLedger {
     submit(fn, ...args) { return this._run('submit', fn, args); }
     evaluate(fn, ...args) { return this._run('evaluate', fn, args); }
 
+    // Mirrors the real adapter's checkTx: is this transaction id in a committed block?
+    // Tests can make a transaction "unknown" by listing it in `hiddenTxs`.
+    async checkTx(txId) {
+        if (this.hiddenTxs && this.hiddenTxs.has(txId)) return false;
+        for (const entries of this.history.values()) {
+            if (entries.some(e => e.tx_id === txId)) return true;
+        }
+        return false;
+    }
+
     // Test helper: raw look at a stored value
     peek(key) { const v = this.world.get(key); return v ? v.toString() : null; }
 }

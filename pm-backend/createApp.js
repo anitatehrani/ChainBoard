@@ -15,6 +15,7 @@ const path = require('node:path');
 const express = require('express');
 
 const { LedgerError } = require('./lib/ledger');
+const { buildReport } = require('./lib/audit');
 const { hashPassword, verifyPassword, verifyAgainstDummy, checkPassword } = require('./lib/passwords');
 const {
     normalizeUsername, usernameProblem, usernameFromEmail, normalizePhone, normalizeEmail,
@@ -81,6 +82,8 @@ function createApp({ ledger, store, mailer, config = {} }) {
         if (err.kind === 'not-found') return 404;
         if (err.kind === 'conflict') return 409;
         if (err.kind === 'network') return 503;
+        // The chaincode refuses an action the person is not allowed to do.
+        if (/^Permission denied/i.test(err.message)) return 403;
         return 400;
     }
 
@@ -439,7 +442,14 @@ function createApp({ ledger, store, mailer, config = {} }) {
     api.post('/projects/:id/members', wrap(async (req, res) => {
         const { memberId, role } = req.body || {};
         if (!memberId || !role) return res.status(400).json({ error: 'Missing: memberId, role' });
-        res.json(await ledger.submit('addProjectMember', req.params.id, memberId, role));
+        // The acting person comes from the session; the CHAINCODE checks their role.
+        res.json(await ledger.submit('addProjectMember', req.params.id, memberId, role, req.user.email));
+    }));
+
+    // Every task of a project, read from the ledger (so a board does not depend on
+    // a list remembered by the browser).
+    api.get('/projects/:id/tasks', wrap(async (req, res) => {
+        res.json(await ledger.evaluate('getProjectTasks', req.params.id));
     }));
 
     api.get('/projects/:id/history', wrap(async (req, res) => {
@@ -447,7 +457,7 @@ function createApp({ ledger, store, mailer, config = {} }) {
     }));
 
     api.delete('/projects/:id', wrap(async (req, res) => {
-        res.json(await ledger.submit('archiveProject', req.params.id));
+        res.json(await ledger.submit('archiveProject', req.params.id, req.user.email));
     }));
 
     // ── TASK ROUTES ────────────────────────────────────────────────────────
@@ -457,7 +467,7 @@ function createApp({ ledger, store, mailer, config = {} }) {
         if (!taskId || !projectId || !title || !description || !priority) {
             return res.status(400).json({ error: 'Missing: taskId, projectId, title, description, priority' });
         }
-        res.status(201).json(await ledger.submit('createTask', taskId, projectId, title, description, priority, dueDate || ''));
+        res.status(201).json(await ledger.submit('createTask', taskId, projectId, title, description, priority, dueDate || '', req.user.email));
     }));
 
     api.get('/tasks/:id', wrap(async (req, res) => {
@@ -467,23 +477,23 @@ function createApp({ ledger, store, mailer, config = {} }) {
     api.put('/tasks/:id/assign', wrap(async (req, res) => {
         const { assigneeId } = req.body || {};
         if (!assigneeId) return res.status(400).json({ error: 'Missing: assigneeId' });
-        res.json(await ledger.submit('assignTask', req.params.id, assigneeId));
+        res.json(await ledger.submit('assignTask', req.params.id, assigneeId, req.user.email));
     }));
 
     api.put('/tasks/:id/status', wrap(async (req, res) => {
         const { status } = req.body || {};
         if (!status) return res.status(400).json({ error: 'Missing: status' });
-        res.json(await ledger.submit('updateTaskStatus', req.params.id, status));
+        res.json(await ledger.submit('updateTaskStatus', req.params.id, status, req.user.email));
     }));
 
     api.put('/tasks/:id/meta', wrap(async (req, res) => {
         const { field, value } = req.body || {};
         if (!field || value === undefined) return res.status(400).json({ error: 'Missing: field, value' });
-        res.json(await ledger.submit('updateTaskMeta', req.params.id, field, value));
+        res.json(await ledger.submit('updateTaskMeta', req.params.id, field, value, req.user.email));
     }));
 
     api.delete('/tasks/:id', wrap(async (req, res) => {
-        res.json(await ledger.submit('archiveTask', req.params.id));
+        res.json(await ledger.submit('archiveTask', req.params.id, req.user.email));
     }));
 
     // authorId comes from the verified session, never from the body.
@@ -497,10 +507,42 @@ function createApp({ ledger, store, mailer, config = {} }) {
         res.json(await ledger.evaluate('getTaskHistory', req.params.id));
     }));
 
+    // Audit report: the full history, a SHA-256 digest chain over it, and a check of
+    // every transaction id against the peer. ?download=1 sends it as a file.
+    async function auditReport(kind, id, history) {
+        const txIds = [...new Set(history.map(h => h.txId))];
+        const checks = {};
+        // a few at a time so a long history does not open dozens of connections at once
+        for (let i = 0; i < txIds.length; i += 4) {
+            const batch = txIds.slice(i, i + 4);
+            const results = await Promise.all(batch.map(tx => (
+                typeof ledger.checkTx === 'function' ? ledger.checkTx(tx).catch(() => null) : Promise.resolve(null)
+            )));
+            batch.forEach((tx, j) => { checks[tx] = results[j]; });
+        }
+        return buildReport({ kind, id, history, txChecks: checks });
+    }
+    function sendReport(req, res, report) {
+        if (req.query.download) {
+            res.setHeader('Content-Disposition', `attachment; filename="audit-${report.kind}-${String(report.id).replace(/[^\w.-]/g, '_')}.json"`);
+        }
+        res.json(report);
+    }
+    api.get('/tasks/:id/audit', wrap(async (req, res) => {
+        const history = await ledger.evaluate('getTaskHistory', req.params.id);
+        if (!history.length) return res.status(404).json({ error: `Task ${req.params.id} does not exist` });
+        sendReport(req, res, await auditReport('task', req.params.id, history));
+    }));
+    api.get('/projects/:id/audit', wrap(async (req, res) => {
+        const history = await ledger.evaluate('getProjectHistory', req.params.id);
+        if (!history.length) return res.status(404).json({ error: `Project ${req.params.id} does not exist` });
+        sendReport(req, res, await auditReport('project', req.params.id, history));
+    }));
+
     api.post('/tasks/:id/files', wrap(async (req, res) => {
         const { fileName, ipfsCid } = req.body || {};
         if (!fileName || !ipfsCid) return res.status(400).json({ error: 'Missing: fileName, ipfsCid' });
-        res.json(await ledger.submit('attachFile', req.params.id, fileName, ipfsCid));
+        res.json(await ledger.submit('attachFile', req.params.id, fileName, ipfsCid, req.user.email));
     }));
 
     api.use((req, res) => res.status(404).json({ error: 'Not found.' }));
