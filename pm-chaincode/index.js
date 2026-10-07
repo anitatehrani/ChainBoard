@@ -83,6 +83,22 @@ function validActor(actorId) {
 function txIdOf(entry) { return entry.txId || entry.tx_id || ''; }
 function isDeleted(entry) { return !!(entry.isDelete || entry.is_delete); }
 
+// Fabric's getHistoryForKey returns the NEWEST version first. Everything downstream
+// (record numbers, "what changed" diffs, the digest chain) needs oldest first, so
+// entries are put in block-time order here. Entries with equal times keep the order
+// they arrived in (the stable sort), which is what the in-memory test ledger relies on.
+function secondsOf(ts) {
+    if (!ts) return 0;
+    const raw = ts.seconds;
+    return raw && typeof raw.toString === 'function' ? Number(raw.toString()) : Number(raw) || 0;
+}
+function chronological(entries) {
+    return entries
+        .map((e, i) => ({ e, i, s: e._s, n: e._n }))
+        .sort((a, b) => (a.s - b.s) || (a.n - b.n) || (a.i - b.i))
+        .map(({ e }) => { const { _s, _n, ...rest } = e; return rest; });
+}
+
 // ISO time of the transaction that wrote a history entry ('' if unavailable).
 // Taken from the committed block (identical on every peer), never from a local clock.
 function historyTime(result) {
@@ -260,12 +276,14 @@ const PMChaincode = class {
             history.push({
                 txId: txIdOf(result.value),
                 timestamp: historyTime(result.value),
-                value: JSON.parse(result.value.value.toString())
+                value: JSON.parse(result.value.value.toString()),
+                _s: secondsOf(result.value.timestamp),
+                _n: Number(result.value.timestamp && result.value.timestamp.nanos) || 0
             });
         }
 
         await iterator.close();
-        return shim.success(Buffer.from(JSON.stringify(history)));
+        return shim.success(Buffer.from(JSON.stringify(chronological(history))));
     }
 
     // Every task of one project. LevelDB has no queries, but it does support a plain
@@ -510,12 +528,14 @@ const PMChaincode = class {
             history.push({
                 txId: txIdOf(result.value),
                 timestamp: historyTime(result.value),
-                value: JSON.parse(result.value.value.toString())
+                value: JSON.parse(result.value.value.toString()),
+                _s: secondsOf(result.value.timestamp),
+                _n: Number(result.value.timestamp && result.value.timestamp.nanos) || 0
             });
         }
 
         await iterator.close();
-        return shim.success(Buffer.from(JSON.stringify(history)));
+        return shim.success(Buffer.from(JSON.stringify(chronological(history))));
     }
 
     // ─────────────────────────────────────────────
@@ -782,11 +802,13 @@ const PMChaincode = class {
                     googleLinked: !!u.googleId,
                     emailVerified: !!u.emailVerifiedAt,
                     projectCount: (u.projectIds || []).length
-                }
+                },
+                _s: secondsOf(ts),
+                _n: Number(ts && ts.nanos) || 0
             });
         }
         await iterator.close();
-        return shim.success(Buffer.from(JSON.stringify(history)));
+        return shim.success(Buffer.from(JSON.stringify(chronological(history))));
     }
 
     async getMyProjects(stub, params) {

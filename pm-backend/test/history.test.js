@@ -52,6 +52,26 @@ test('real fabric-shim field names (txId, isDelete) work as well as the mock\'s'
     assert.match(hist[0].timestamp, /^2025-/);
 });
 
+test('history is oldest first even when Fabric hands it back newest first', async () => {
+    const { PMChaincode } = require('../../pm-chaincode/index.js');
+    const cc = new PMChaincode();
+    const rec = (txId, secs, nanos, members) => ({
+        txId, isDelete: false, timestamp: { seconds: { toString: () => String(secs) }, nanos },
+        value: Buffer.from(JSON.stringify({ projectId: 'p', members }))
+    });
+    const newestFirst = [rec('c', 300, 0, ['a', 'b', 'c']), rec('b', 200, 5, ['a', 'b']), rec('b2', 200, 1, ['a']), rec('a', 100, 0, ['a'])];
+    const stub = {
+        getHistoryForKey: async () => {
+            let i = 0;
+            return { next: async () => (i < newestFirst.length ? { done: false, value: newestFirst[i++] } : { done: true }), close: async () => {} };
+        }
+    };
+    const res = await cc.getProjectHistory(stub, ['p']);
+    const hist = JSON.parse(res.payload.toString());
+    assert.deepEqual(hist.map(h => h.txId), ['a', 'b2', 'b', 'c']);
+    assert.equal(hist[0]._s, undefined, 'internal sort keys are not returned');
+});
+
 test('project history carries a block time and the actor too', async () => {
     const r = await t.request('GET', '/api/projects/hp/audit', { cookie: owner.cookie });
     assert.equal(r.status, 200);
