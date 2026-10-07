@@ -3,6 +3,7 @@ import { useAutoRefresh } from './lib/useAutoRefresh'
 import { refreshTargets, sameData } from './refreshLogic'
 import './App.css'
 import Nav from './components/Nav'
+import AccountMenu from './components/AccountMenu'
 import AuthPage from './components/AuthPage'
 import VerifyEmailPage from './components/VerifyEmailPage'
 import AccountPage from './components/AccountPage'
@@ -628,13 +629,11 @@ function App() {
           <h1>ChainBoard</h1>
           <p className="subtitle">Hyperledger Fabric · IPFS · Immutable Audit Trail</p>
         </div>
-        <button className="theme-toggle" onClick={toggleTheme} title="Switch theme">
-          {theme === 'dark' ? '☀️ Light mode' : '🌙 Dark mode'}
-        </button>
+        <AccountMenu currentUser={currentUser} page={page} setPage={setPage}
+          onLogout={handleLogout} theme={theme} onToggleTheme={toggleTheme} />
       </header>
 
-      <Nav page={page} setPage={setPage} hasProject={!!selectedProject} hasTask={!!selectedTask}
-        currentUser={currentUser} onLogout={handleLogout} />
+      <Nav page={page} setPage={setPage} hasProject={!!selectedProject} hasTask={!!selectedTask} />
 
       <div className="toast-stack">
         {toasts.map(t => (
