@@ -2,7 +2,14 @@ import { cardState, todayISO } from '../boardLogic'
 import { isAllowedMove, auditEntries } from '../taskLogic'
 import { canWorkOnTask, canAssignTask, canArchiveTask } from '../permissionLogic'
 import AuditVerifier from './AuditVerifier'
+import Select from './Select'
 import './task.css'
+
+const PRIORITY_OPTIONS = [
+  { value: 'low', label: 'Low priority' },
+  { value: 'medium', label: 'Medium priority' },
+  { value: 'high', label: 'High priority' }
+]
 
 // Old (pre-role) projects stored members as plain ID strings; new ones store
 // {id, role}. This tolerates either shape so past data doesn't crash the UI.
@@ -84,11 +91,10 @@ function TaskPage({
             <div className="edit-meta-form">
               <textarea rows={2} value={editMeta.description}
                 onChange={e => setEditMeta({ ...editMeta, description: e.target.value })} />
-              <select value={editMeta.priority} onChange={e => setEditMeta({ ...editMeta, priority: e.target.value })}>
-                <option value="low">Low priority</option>
-                <option value="medium">Medium priority</option>
-                <option value="high">High priority</option>
-              </select>
+              <Select ariaLabel="Priority" value={editMeta.priority}
+                onChange={v => setEditMeta({ ...editMeta, priority: v })}
+                options={PRIORITY_OPTIONS} />
+
               <label className="field-label">
                 Due date
                 <input type="date" value={editMeta.dueDate}
@@ -128,13 +134,12 @@ function TaskPage({
 
           {selectedTask.status !== 'done' && selectedProject && selectedProject.projectId === selectedTask.projectId && (
             <div className="assign-row">
-              <select aria-label="Assign to" value={assignTo} onChange={e => setAssignTo(e.target.value)}>
-                <option value="">Assign to…</option>
-                {selectedProject.members.map(m => {
+              <Select ariaLabel="Assign to" placeholder="Assign to…" value={assignTo}
+                onChange={setAssignTo}
+                options={selectedProject.members.map(m => {
                   const id = memberId(m)
-                  return <option key={id} value={id}>{displayName(id)}</option>
-                })}
-              </select>
+                  return { value: id, label: displayName(id), hint: id }
+                })} />
               <button onClick={assignTask} className="btn btn-accent sm"
                 disabled={!assignTo || !canAssignTask(selectedProject, selectedTask, currentUser.email, assignTo).allowed}
                 title={assignTo ? canAssignTask(selectedProject, selectedTask, currentUser.email, assignTo).reason : ''}>Assign</button>

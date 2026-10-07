@@ -3,6 +3,7 @@ import {
 } from '../projectLogic'
 import { canAddMember, canArchiveProject, roleLabel } from '../permissionLogic'
 import AuditVerifier from './AuditVerifier'
+import Select from './Select'
 import './project.css'
 
 function ProjectPage({
@@ -96,22 +97,20 @@ function ProjectPage({
             <form onSubmit={addMember} className="inline-form">
               <label className="field-label-inline">
                 Person
-                <select value={newMember} onChange={e => setNewMember(e.target.value)}>
-                  <option value="">Choose a person…</option>
-                  {availableUsers.map(u => (
-                    <option key={u.email} value={u.email}>
-                      {u.name}{u.username ? ` (@${u.username})` : ''}
-                    </option>
-                  ))}
-                </select>
+                <Select ariaLabel="Person to add" placeholder="Choose a person…" searchable
+                  value={newMember} onChange={setNewMember}
+                  options={availableUsers.map(u => ({
+                    value: u.email, label: u.name, hint: u.username ? `@${u.username}` : u.email
+                  }))} />
               </label>
               <label className="field-label-inline role-field">
                 Role
-                <select value={newMemberRole} onChange={e => setNewMemberRole(e.target.value)}>
-                  <option value="contributor">Contributor</option>
-                  <option value="admin">Admin</option>
-                  <option value="owner">Owner</option>
-                </select>
+                <Select ariaLabel="Role" value={newMemberRole} onChange={setNewMemberRole}
+                  options={[
+                    { value: 'contributor', label: 'Contributor', hint: 'Works on tasks' },
+                    { value: 'admin', label: 'Admin', hint: 'Manages tasks and contributors' },
+                    { value: 'owner', label: 'Owner', hint: 'Full control' }
+                  ]} />
               </label>
               <button type="submit" className="btn btn-secondary sm"
                 disabled={!newMember || !canAddMember(selectedProject, currentUser.email, newMemberRole).allowed}>

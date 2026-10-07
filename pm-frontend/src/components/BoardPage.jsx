@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { cardState, cardAriaLabel, filterTasks, groupByColumn, todayISO } from '../boardLogic'
 import { canCreateTask } from '../permissionLogic'
+import Select from './Select'
 import './board.css'
 
 // Old (pre-role) projects stored members as plain ID strings; new ones store
@@ -63,11 +64,13 @@ function BoardPage({
             onChange={e => setTForm({ ...tForm, title: e.target.value })} required />
           <textarea placeholder="Description" value={tForm.description} rows={1}
             onChange={e => setTForm({ ...tForm, description: e.target.value })} required />
-          <select value={tForm.priority} onChange={e => setTForm({ ...tForm, priority: e.target.value })}>
-            <option value="low">Low priority</option>
-            <option value="medium">Medium priority</option>
-            <option value="high">High priority</option>
-          </select>
+          <Select ariaLabel="Priority" value={tForm.priority}
+            onChange={v => setTForm({ ...tForm, priority: v })}
+            options={[
+              { value: 'low', label: 'Low priority' },
+              { value: 'medium', label: 'Medium priority' },
+              { value: 'high', label: 'High priority' }
+            ]} />
           <input type="date" title="Due date (optional)" value={tForm.dueDate}
             onChange={e => setTForm({ ...tForm, dueDate: e.target.value })} />
           <button type="submit" className="btn btn-success"
@@ -87,19 +90,21 @@ function BoardPage({
 
         {boardTasks.length > 0 && (
           <div className="filter-bar" role="group" aria-label="Board filters">
-            <select aria-label="Filter by assignee" value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
-              <option value="">All assignees</option>
-              {selectedProject.members.map(m => {
-                const id = memberId(m)
-                return <option key={id} value={id}>{displayName(id)}</option>
-              })}
-            </select>
-            <select aria-label="Filter by priority" value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
-              <option value="">All priorities</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
+            <Select size="sm" ariaLabel="Filter by assignee" value={filterAssignee} onChange={setFilterAssignee}
+              options={[
+                { value: '', label: 'All assignees' },
+                ...selectedProject.members.map(m => {
+                  const id = memberId(m)
+                  return { value: id, label: displayName(id), hint: id }
+                })
+              ]} />
+            <Select size="sm" ariaLabel="Filter by priority" value={filterPriority} onChange={setFilterPriority}
+              options={[
+                { value: '', label: 'All priorities' },
+                { value: 'low', label: 'Low' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'high', label: 'High' }
+              ]} />
             {filtersActive && (
               <button className="btn btn-secondary sm" onClick={() => { setFilterAssignee(''); setFilterPriority('') }}>
                 Clear filters
