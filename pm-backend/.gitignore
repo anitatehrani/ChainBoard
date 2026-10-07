@@ -1,0 +1,4 @@
+node_modules/
+.env
+# Runtime data: login sessions (hashed tokens) and mail preview files
+data/

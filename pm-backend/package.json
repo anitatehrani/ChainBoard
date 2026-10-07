@@ -1,14 +1,20 @@
 {
   "name": "pm-backend",
-  "version": "1.0.0",
-  "description": "Backend API for Decentralized PM System",
+  "version": "2.0.0",
+  "description": "Backend API for ChainBoard, a decentralized project management system (Hyperledger Fabric + IPFS)",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "dev": "node --watch app.js",
+    "seed": "node scripts/seed-demo.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",
     "@hyperledger/fabric-gateway": "^1.7.1",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "google-auth-library": "^9.14.1",
+    "nodemailer": "^6.9.14",
+    "zod": "^3.23.8"
   }
 }
