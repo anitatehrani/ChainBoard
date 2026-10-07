@@ -90,6 +90,9 @@
   padding: 24px;
 }
 .card.wide { margin-top: 0; }
+/* stacked full-width cards need breathing room (grids keep their own gap) */
+.card.wide + .card.wide { margin-top: 20px; }
+.grid-2 > .card.wide + .card.wide { margin-top: 0; }
 
 .card-header { margin-bottom: 16px; }
 .card-header h2 { margin: 6px 0 0; font-size: 17px; font-weight: 600; }
