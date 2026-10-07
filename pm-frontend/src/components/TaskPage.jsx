@@ -1,6 +1,7 @@
 import { cardState, todayISO } from '../boardLogic'
 import { isAllowedMove, auditEntries } from '../taskLogic'
 import { canWorkOnTask, canAssignTask, canArchiveTask } from '../permissionLogic'
+import { formatWhen } from '../auditLogic'
 import AuditVerifier from './AuditVerifier'
 import Select from './Select'
 import DatePicker from './DatePicker'
@@ -223,6 +224,8 @@ function TaskPage({
                 </div>
                 <div className="timeline-change">{e.changes.join(' · ')}</div>
                 <div className="timeline-meta">
+                  {e.value.updatedBy && <>by <b>{displayName(e.value.updatedBy)}</b> · </>}
+                  {formatWhen(e.timestamp) && <>{formatWhen(e.timestamp)} · </>}
                   assignee <b>{e.value.assigneeId ? displayName(e.value.assigneeId) : '—'}</b> · priority <b>{e.value.priority}</b>
                 </div>
               </div>

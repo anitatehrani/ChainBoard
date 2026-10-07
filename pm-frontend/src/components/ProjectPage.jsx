@@ -2,6 +2,7 @@ import {
   memberId, memberRole, avatarColor, initial, sortMembers, roleSummary, roleHelp, projectAuditEntries
 } from '../projectLogic'
 import { canAddMember, canArchiveProject, roleLabel } from '../permissionLogic'
+import { formatWhen } from '../auditLogic'
 import AuditVerifier from './AuditVerifier'
 import Select from './Select'
 import './project.css'
@@ -154,6 +155,8 @@ function ProjectPage({
                 </div>
                 <div className="timeline-change">{e.changes.join(' · ')}</div>
                 <div className="timeline-meta">
+                  {e.value.updatedBy && <>by <b>{displayName(e.value.updatedBy)}</b> · </>}
+                  {formatWhen(e.timestamp) && <>{formatWhen(e.timestamp)} · </>}
                   members <b>{e.value.members.map(m => displayName(memberId(m))).join(', ')}</b>
                 </div>
               </div>

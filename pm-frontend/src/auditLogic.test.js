@@ -1,6 +1,19 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { summarizeReport, reportFileName, recordLine } from './auditLogic.js'
+import { summarizeReport, reportFileName, recordLine, formatWhen } from './auditLogic.js'
+
+test('formatWhen: readable local date and time, empty when unusable', () => {
+  const d = new Date(2026, 9, 7, 14, 5) // local time, so the test holds in any time zone
+  assert.equal(formatWhen(d.toISOString()), '7 Oct 2026, 14:05')
+  assert.equal(formatWhen(''), '')
+  assert.equal(formatWhen('not a date'), '')
+  assert.equal(formatWhen(undefined), '')
+})
+
+test('recordLine includes the time when the record has one', () => {
+  const d = new Date(2026, 9, 7, 9, 30)
+  assert.match(recordLine({ n: 1, txId: 'abc', timestamp: d.toISOString(), onLedger: true }), /7 Oct 2026, 09:30/)
+})
 
 const base = { recordCount: 3, ledgerChecked: 3, headDigest: 'a'.repeat(64), records: [], allOnLedger: false, anyMissing: false }
 

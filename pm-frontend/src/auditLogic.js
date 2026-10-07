@@ -40,8 +40,19 @@ export function reportFileName(report) {
   return `audit-${(report && report.kind) || 'record'}-${id}.json`
 }
 
+// "7 Oct 2026, 14:32" in the viewer's own time zone; '' when there is no usable time.
+export function formatWhen(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 // One line per record for the on-screen list.
 export function recordLine(r) {
   const state = r.onLedger === true ? 'on ledger' : r.onLedger === false ? 'NOT FOUND on ledger' : 'not checked'
-  return `#${r.n} · tx ${String(r.txId).slice(0, 10)}… · ${state}`
+  const when = formatWhen(r.timestamp)
+  return `#${r.n} · ${when ? `${when} · ` : ''}tx ${String(r.txId).slice(0, 10)}… · ${state}`
 }

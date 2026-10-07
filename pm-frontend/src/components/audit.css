@@ -1,6 +1,6 @@
 /* Audit verification panel. Tokens and theme variables only. */
 
-.audit { margin-top: var(--s-4); }
+.audit { margin: var(--s-3) 0 var(--s-5); }
 .audit-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .audit-actions .btn { min-height: var(--tap); }
 

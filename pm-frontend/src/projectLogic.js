@@ -73,6 +73,7 @@ export function projectAuditEntries(history, nameOf) {
     .map((h, i) => ({
       n: i + 1,
       txId: h.txId,
+      timestamp: h.timestamp,
       value: h.value,
       changes: describeProjectChange(i === 0 ? null : list[i - 1].value, h.value, nameOf)
     }))

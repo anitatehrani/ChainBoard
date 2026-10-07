@@ -78,6 +78,16 @@ function validActor(actorId) {
     return typeof actorId === 'string' && actorId.trim().length > 0;
 }
 
+// ISO time of the transaction that wrote a history entry ('' if unavailable).
+// Taken from the committed block (identical on every peer), never from a local clock.
+function historyTime(result) {
+    const ts = result && result.timestamp;
+    if (!ts) return '';
+    const secs = ts.seconds && typeof ts.seconds.toString === 'function'
+        ? Number(ts.seconds.toString()) : Number(ts.seconds);
+    return secs ? new Date(secs * 1000).toISOString() : '';
+}
+
 const PMChaincode = class {
 
     // Loads a project or returns null. Used by the permission checks.
@@ -167,7 +177,8 @@ const PMChaincode = class {
             docType: 'project',
             projectId, name, description, ownerId,
             members: [{ id: ownerId, role: 'owner' }],
-            status: 'active'
+            status: 'active',
+            updatedBy: ownerId
         };
 
         await stub.putState(projectKey(projectId), Buffer.from(JSON.stringify(project)));
@@ -209,6 +220,7 @@ const PMChaincode = class {
         }
 
         project.members.push({ id: memberId, role });
+        project.updatedBy = actorId;
         await stub.putState(projectKey(projectId), Buffer.from(JSON.stringify(project)));
         await this._addProjectToUserIndex(stub, memberId, projectId);
         return shim.success(Buffer.from(JSON.stringify(project)));
@@ -227,6 +239,7 @@ const PMChaincode = class {
         if (project.status === 'archived') return shim.error(`Project ${params[0]} is already archived`);
 
         project.status = 'archived';
+        project.updatedBy = params[1];
         await stub.putState(projectKey(params[0]), Buffer.from(JSON.stringify(project)));
         return shim.success(Buffer.from(JSON.stringify(project)));
     }
@@ -241,6 +254,7 @@ const PMChaincode = class {
             if (result.done) break;
             history.push({
                 txId: result.value.tx_id,
+                timestamp: historyTime(result.value),
                 value: JSON.parse(result.value.value.toString())
             });
         }
@@ -308,7 +322,8 @@ const PMChaincode = class {
             assigneeId: null,
             archived: false,
             attachments: [],
-            comments: []
+            comments: [],
+            updatedBy: actorId
         };
 
         await stub.putState(taskKey(taskId), Buffer.from(JSON.stringify(task)));
@@ -367,6 +382,7 @@ const PMChaincode = class {
         }
 
         task.assigneeId = assigneeId;
+        task.updatedBy = actorId;
         await stub.putState(taskKey(taskId), Buffer.from(JSON.stringify(task)));
         return shim.success(Buffer.from(JSON.stringify(task)));
     }
@@ -399,6 +415,7 @@ const PMChaincode = class {
         }
 
         task.status = newStatus;
+        task.updatedBy = actorId;
         await stub.putState(taskKey(taskId), Buffer.from(JSON.stringify(task)));
         return shim.success(Buffer.from(JSON.stringify(task)));
     }
@@ -425,6 +442,7 @@ const PMChaincode = class {
         if (task.status === 'done') return shim.error(`Cannot edit a completed task`);
 
         task[field] = value;
+        task.updatedBy = actorId;
         await stub.putState(taskKey(taskId), Buffer.from(JSON.stringify(task)));
         return shim.success(Buffer.from(JSON.stringify(task)));
     }
@@ -446,6 +464,7 @@ const PMChaincode = class {
         if (task.archived) return shim.error(`Task ${params[0]} is already archived`);
 
         task.archived = true;
+        task.updatedBy = params[1];
         await stub.putState(taskKey(params[0]), Buffer.from(JSON.stringify(task)));
         return shim.success(Buffer.from(JSON.stringify(task)));
     }
@@ -470,6 +489,7 @@ const PMChaincode = class {
         // audit trail's transaction sequence instead, same as everywhere else.
         if (!task.comments) task.comments = [];
         task.comments.push({ authorId, text });
+        task.updatedBy = authorId;
         await stub.putState(taskKey(taskId), Buffer.from(JSON.stringify(task)));
         return shim.success(Buffer.from(JSON.stringify(task)));
     }
@@ -484,6 +504,7 @@ const PMChaincode = class {
             if (result.done) break;
             history.push({
                 txId: result.value.tx_id,
+                timestamp: historyTime(result.value),
                 value: JSON.parse(result.value.value.toString())
             });
         }
@@ -511,6 +532,7 @@ const PMChaincode = class {
         }
 
         task.attachments.push({ fileName, cid: ipfsCid });
+        task.updatedBy = actorId;
         await stub.putState(taskKey(taskId), Buffer.from(JSON.stringify(task)));
         return shim.success(Buffer.from(JSON.stringify(task)));
     }
