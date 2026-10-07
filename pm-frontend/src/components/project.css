@@ -33,6 +33,48 @@
 .timeline-change { font-size: var(--fs-sm); font-weight: var(--fw-semibold); margin-bottom: var(--s-1); }
 .timeline-content { border-radius: var(--r-md); }
 
+/* ── redesigned project page ─────────────────────────────────────────── */
+.proj { display: flex; flex-direction: column; gap: var(--s-4); }
+.proj > .card { margin: 0; }
+.btn-link { align-self: flex-start; background: none; border: 0; padding: var(--s-1) 0; color: var(--text-dim); font: inherit; font-size: var(--fs-sm); cursor: pointer; margin: 0; }
+.btn-link:hover { color: var(--text); }
+.btn-link:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-sm); }
+
+.proj-hero-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+.proj-hero-title { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; min-width: 0; }
+.proj-hero-title h2 { margin: 0; font-size: 24px; font-weight: var(--fw-bold); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.proj-hero .btn-accent { min-height: var(--tap); padding: 0 var(--s-5); }
+.proj-desc { margin: var(--s-3) 0; color: var(--text-dim); font-size: var(--fs-md); line-height: var(--lh-body); max-width: 70ch; }
+.proj-facts { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-4); }
+.chip-copy {
+  margin-left: var(--s-2); padding: 0 var(--s-2); min-height: 20px;
+  background: transparent; border: 1px solid var(--border); border-radius: var(--r-pill);
+  color: var(--accent-hover); font: inherit; font-size: var(--fs-xs); cursor: pointer;
+}
+.chip-copy:hover { border-color: var(--accent); }
+.proj-progress { padding-top: var(--s-3); border-top: 1px solid var(--border); }
+.proj-counts { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); font-size: var(--fs-sm); color: var(--text-dim); margin-bottom: var(--s-2); }
+.proj-progress .progress { margin: var(--s-2) 0 var(--s-1); }
+.proj-progress .progress-text { margin: 0; }
+
+.proj-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; margin-bottom: var(--s-3); }
+.proj-h3 { margin: 0; font-size: var(--fs-lg); font-weight: var(--fw-semibold); display: flex; align-items: center; gap: var(--s-2); }
+.proj-section-head .role-summary { margin: var(--s-1) 0 0; max-width: 60ch; }
+.proj-section-head .btn { min-height: 40px; }
+
+.member-sub { font-size: var(--fs-xs); color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member-edit {
+  width: 32px; height: 32px; display: grid; place-items: center; flex: none;
+  background: transparent; color: var(--text-faint); border: 0; border-radius: var(--r-md); cursor: pointer;
+}
+.member-edit:hover { color: var(--text); background: color-mix(in srgb, var(--text) 8%, transparent); }
+.member-edit:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.add-member-box { margin-bottom: var(--s-4); }
+
+.proj-danger { border-color: color-mix(in srgb, var(--danger) 30%, var(--border)); }
+.proj-danger .proj-section-head { margin-bottom: 0; align-items: center; }
+.proj-confirm { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; font-size: var(--fs-sm); color: var(--text); }
+
 @media (max-width: 560px) {
   .inline-form .role-field { flex: 1 1 100%; }
   .inline-form > button { flex: 1 1 100%; }

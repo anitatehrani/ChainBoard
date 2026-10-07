@@ -695,7 +695,7 @@ function App() {
           loadProjectHistory={loadProjectHistory} loadingProjHistory={loadingProjHistory}
           showProjectHistory={showProjectHistory} projectHistory={projectHistory}
           nameMap={nameMap} displayName={displayName} setDisplayName={setDisplayName}
-          userDirectory={userDirectory}
+          userDirectory={userDirectory} boardTasks={boardTasks} statusMeta={statusMeta}
           goTo={goTo}
         />
       )}
