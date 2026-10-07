@@ -676,6 +676,7 @@ function App() {
 
       {page === 'dashboard' && (
         <DashboardPage
+          currentUser={currentUser} displayName={displayName}
           pForm={pForm} setPForm={setPForm} createProject={createProject}
           loadProjectId={loadProjectId} setLoadProjectId={setLoadProjectId}
           loadProject={loadProject} loadingProject={loadingProject}

@@ -35,6 +35,65 @@ export function taskSummary(tasks, columns = ['todo', 'in-progress', 'done'], to
   }
 }
 
+// ── project overview helpers ──
+
+// "Good morning" / "Good afternoon" / "Good evening" from the viewer's local hour.
+export function greeting(now = new Date()) {
+  const h = now.getHours()
+  if (h < 5) return 'Good evening'
+  if (h < 12) return 'Good morning'
+  if (h < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
+// The person's role in a project: 'owner' | 'admin' | 'contributor' | null.
+// Old projects stored plain strings, which the ledger treats as contributors.
+export function roleIn(project, email) {
+  const members = project && Array.isArray(project.members) ? project.members : []
+  for (const m of members) {
+    const id = typeof m === 'string' ? m : m && m.id
+    if (id === email) return typeof m === 'string' ? 'contributor' : (m.role || 'contributor')
+  }
+  return null
+}
+
+// Header numbers: total, active, archived, and how many the person owns.
+export function projectCounts(projects, email) {
+  const list = Array.isArray(projects) ? projects : []
+  const archived = list.filter(p => projectState(p) === 'archived').length
+  return {
+    total: list.length,
+    active: list.length - archived,
+    archived,
+    owned: list.filter(p => roleIn(p, email) === 'owner').length
+  }
+}
+
+// Searching starts at 3 characters; shorter text is ignored (everything stays listed).
+export const SEARCH_MIN_CHARS = 3
+
+export function searchIsActive(query) {
+  return String(query || '').trim().length >= SEARCH_MIN_CHARS
+}
+
+// Search by name, description or id; status is 'all' | 'active' | 'archived'.
+// Active projects first, then by name (case-insensitive), without changing the input.
+export function filterProjects(projects, { query = '', status = 'all' } = {}) {
+  const words = searchIsActive(query) ? String(query).toLowerCase().split(/\s+/).filter(Boolean) : []
+  return (Array.isArray(projects) ? projects : [])
+    .filter(p => status === 'all' || projectState(p) === status)
+    .filter(p => {
+      const hay = `${p.name || ''} ${p.description || ''} ${p.projectId || ''}`.toLowerCase()
+      return words.every(w => hay.includes(w))
+    })
+    .slice()
+    .sort((a, b) => {
+      const sa = projectState(a) === 'archived' ? 1 : 0
+      const sb = projectState(b) === 'archived' ? 1 : 0
+      return (sa - sb) || String(a.name || '').toLowerCase().localeCompare(String(b.name || '').toLowerCase())
+    })
+}
+
 export function summaryText(s) {
   if (s.total === 0) return 'No tasks yet'
   const base = `${s.percentDone}% done · ${plural(s.total, 'task')}`
