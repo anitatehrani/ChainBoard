@@ -148,7 +148,7 @@ function DashboardPage({
               <div className="dash-search-wrap">
                 <label className="dash-search">
                   {Icon.search}
-                  <input type="search" placeholder={`Search (${SEARCH_MIN_CHARS}+ letters)`} aria-label="Search projects"
+                  <input type="search" placeholder="Search" aria-label="Search projects"
                     aria-describedby="dash-search-hint"
                     value={query} onChange={e => setQuery(e.target.value)} />
                 </label>

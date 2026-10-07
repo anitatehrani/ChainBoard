@@ -117,7 +117,7 @@ function BoardPage({
               <div className="bf-search-wrap">
                 <label className="bf-search">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="M10.5 10.5L14 14" /></svg>
-                  <input type="search" placeholder={`Search tasks (${TASK_SEARCH_MIN_CHARS}+ letters)`} aria-label="Search tasks"
+                  <input type="search" placeholder="Search" aria-label="Search tasks"
                     value={query} onChange={e => setQuery(e.target.value)} />
                 </label>
                 <span className="bf-hint" aria-live="polite">
