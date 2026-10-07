@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { cardState, cardAriaLabel, filterTasks, groupByColumn, todayISO } from '../boardLogic'
+import {
+  cardState, cardAriaLabel, filterTasks, groupByColumn, todayISO,
+  UNASSIGNED, activeFilterCount, filterCounts, taskSearchActive, TASK_SEARCH_MIN_CHARS
+} from '../boardLogic'
 import { canCreateTask } from '../permissionLogic'
 import Select from './Select'
 import DatePicker from './DatePicker'
@@ -20,16 +23,35 @@ function BoardPage({
 }) {
   const [dragOverCol, setDragOverCol] = useState(null)
   const [draggingId, setDraggingId] = useState(null)
+  const [query, setQuery] = useState('')
   const [filterAssignee, setFilterAssignee] = useState('')
-  const [filterPriority, setFilterPriority] = useState('')
+  const [filterPriorities, setFilterPriorities] = useState([])
+  const [filterDue, setFilterDue] = useState('')
 
   const today = todayISO()
-  const filteredTasks = filterTasks(boardTasks, {
-    showArchived: showArchivedTasks, assignee: filterAssignee, priority: filterPriority
-  })
+  const filters = { query, assignee: filterAssignee, priorities: filterPriorities, due: filterDue }
+  const filteredTasks = filterTasks(boardTasks, { ...filters, showArchived: showArchivedTasks, today })
   const byColumn = groupByColumn(filteredTasks, columns)
-  const filtersActive = filterAssignee || filterPriority
+  const activeCount = activeFilterCount(filters)
   const archivedCount = boardTasks.filter(t => t.archived).length
+  const baseCount = showArchivedTasks ? boardTasks.length : boardTasks.length - archivedCount
+  const counts = filterCounts(boardTasks, today)
+
+  function clearFilters() { setQuery(''); setFilterAssignee(''); setFilterPriorities([]); setFilterDue('') }
+  function togglePriority(p) {
+    setFilterPriorities(list => (list.includes(p) ? list.filter(x => x !== p) : [...list, p]))
+  }
+  const toggleDue = d => setFilterDue(cur => (cur === d ? '' : d))
+
+  const members = selectedProject ? selectedProject.members.map(memberId) : []
+  const assigneeOptions = [
+    { value: '', label: 'Anyone' },
+    ...(members.includes(currentUser.email) ? [{ value: currentUser.email, label: 'Assigned to me' }] : []),
+    { value: UNASSIGNED, label: 'Unassigned', hint: `${counts.unassigned} open` },
+    ...members.filter(id => id !== currentUser.email).map(id => ({ value: id, label: displayName(id), hint: id }))
+  ]
+  const PRIORITY_CHIPS = [['high', 'High'], ['medium', 'Medium'], ['low', 'Low']]
+  const DUE_CHIPS = [['overdue', 'Overdue', counts.overdue], ['week', 'Due this week', counts.week], ['none', 'No due date', counts.none]]
 
   function handleDrop(e, col) {
     e.preventDefault()
@@ -90,32 +112,53 @@ function BoardPage({
         <div className="board-tools">
 
         {boardTasks.length > 0 && (
-          <div className="filter-bar" role="group" aria-label="Board filters">
-            <Select size="sm" ariaLabel="Filter by assignee" value={filterAssignee} onChange={setFilterAssignee}
-              options={[
-                { value: '', label: 'All assignees' },
-                ...selectedProject.members.map(m => {
-                  const id = memberId(m)
-                  return { value: id, label: displayName(id), hint: id }
-                })
-              ]} />
-            <Select size="sm" ariaLabel="Filter by priority" value={filterPriority} onChange={setFilterPriority}
-              options={[
-                { value: '', label: 'All priorities' },
-                { value: 'low', label: 'Low' },
-                { value: 'medium', label: 'Medium' },
-                { value: 'high', label: 'High' }
-              ]} />
-            {filtersActive && (
-              <button className="btn btn-secondary sm" onClick={() => { setFilterAssignee(''); setFilterPriority('') }}>
-                Clear filters
-              </button>
-            )}
-            {archivedCount > 0 && (
-              <button className="btn btn-secondary sm" onClick={() => setShowArchivedTasks(v => !v)}>
-                {showArchivedTasks ? 'Hide' : 'Show'} archived ({archivedCount})
-              </button>
-            )}
+          <div className="board-filters" role="group" aria-label="Board filters">
+            <div className="bf-row">
+              <div className="bf-search-wrap">
+                <label className="bf-search">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="M10.5 10.5L14 14" /></svg>
+                  <input type="search" placeholder={`Search tasks (${TASK_SEARCH_MIN_CHARS}+ letters)`} aria-label="Search tasks"
+                    value={query} onChange={e => setQuery(e.target.value)} />
+                </label>
+                <span className="bf-hint" aria-live="polite">
+                  {query.trim() && !taskSearchActive(query) ? `Type at least ${TASK_SEARCH_MIN_CHARS} letters to search` : ''}
+                </span>
+              </div>
+              <div className="bf-assignee">
+                <Select size="sm" ariaLabel="Filter by assignee" value={filterAssignee} onChange={setFilterAssignee}
+                  options={assigneeOptions} />
+              </div>
+              {archivedCount > 0 && (
+                <button type="button" className={`bf-chip ${showArchivedTasks ? 'on' : ''}`} aria-pressed={showArchivedTasks}
+                  onClick={() => setShowArchivedTasks(v => !v)}>
+                  Archived <span className="bf-n">{archivedCount}</span>
+                </button>
+              )}
+            </div>
+
+            <div className="bf-row bf-chips">
+              <span className="bf-label">Priority</span>
+              {PRIORITY_CHIPS.map(([id, label]) => (
+                <button key={id} type="button" className={`bf-chip ${filterPriorities.includes(id) ? 'on' : ''}`}
+                  aria-pressed={filterPriorities.includes(id)} onClick={() => togglePriority(id)}>
+                  <span className="bf-dot" aria-hidden="true" style={{ background: priorityMeta[id].color }} />{label}
+                </button>
+              ))}
+              <span className="bf-label">Due</span>
+              {DUE_CHIPS.map(([id, label, n]) => (
+                <button key={id} type="button" className={`bf-chip ${filterDue === id ? 'on' : ''} ${id === 'overdue' && n > 0 ? 'warn' : ''}`}
+                  aria-pressed={filterDue === id} onClick={() => toggleDue(id)}>
+                  {label} <span className="bf-n">{n}</span>
+                </button>
+              ))}
+              <span className="bf-spacer" />
+              <span className="bf-result" role="status" aria-live="polite">
+                {activeCount > 0 ? `Showing ${filteredTasks.length} of ${baseCount} tasks` : `${baseCount} task${baseCount === 1 ? '' : 's'}`}
+              </span>
+              {activeCount > 0 && (
+                <button type="button" className="bf-clear" onClick={clearFilters}>Clear all</button>
+              )}
+            </div>
           </div>
         )}
         </div>
@@ -125,7 +168,11 @@ function BoardPage({
         ) : boardTasks.length === 0 ? (
           <div className="context-line">This project has no tasks yet — create the first one above.</div>
         ) : filteredTasks.length === 0 ? (
-          <div className="context-line">No tasks match the current filters.</div>
+          <div className="dash-empty">
+            <strong>No tasks match these filters</strong>
+            <p>Try removing one, or clear them all.</p>
+            <button type="button" className="btn btn-secondary sm" onClick={clearFilters}>Clear all filters</button>
+          </div>
         ) : (
           <div className="kanban">
             {columns.map(col => (

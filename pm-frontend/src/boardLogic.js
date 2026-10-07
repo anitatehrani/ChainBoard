@@ -58,13 +58,61 @@ export function cardState(task, today) {
   }
 }
 
-// Same filtering the board always did, moved here so it can be tested.
-export function filterTasks(tasks, { showArchived = false, assignee = '', priority = '' } = {}) {
-  return tasks.filter(t =>
-    (showArchived || !t.archived) &&
-    (!assignee || t.assigneeId === assignee) &&
-    (!priority || t.priority === priority)
-  )
+export const TASK_SEARCH_MIN_CHARS = 3
+export const UNASSIGNED = '__unassigned'
+
+// Whether the text is long enough to filter by (shorter text is ignored).
+export function taskSearchActive(query) {
+  return String(query || '').trim().length >= TASK_SEARCH_MIN_CHARS
+}
+
+// Board filtering. Every option is optional and they combine (all must match):
+//   showArchived  include archived tasks
+//   assignee      an id, or UNASSIGNED for tasks nobody has taken
+//   priority      one priority (older single-value option)
+//   priorities    several priorities at once, e.g. ['high', 'medium']
+//   due           'overdue' | 'week' (today..7 days, still open) | 'none' (no due date)
+//   query         words that must all appear in the title or description (3+ characters)
+//   today         YYYY-MM-DD, for the due filters
+export function filterTasks(tasks, {
+  showArchived = false, assignee = '', priority = '', priorities = [], due = '', query = '', today = todayISO()
+} = {}) {
+  const words = taskSearchActive(query) ? String(query).toLowerCase().split(/\s+/).filter(Boolean) : []
+  const wanted = Array.isArray(priorities) ? priorities : []
+  return tasks.filter(t => {
+    if (!showArchived && t.archived) return false
+    if (assignee === UNASSIGNED ? !!t.assigneeId : (assignee && t.assigneeId !== assignee)) return false
+    if (priority && t.priority !== priority) return false
+    if (wanted.length && !wanted.includes(t.priority)) return false
+    if (due) {
+      const n = daysUntil(t.dueDate, today)
+      const open = !t.archived && t.status !== 'done'
+      if (due === 'overdue' && !cardState(t, today).overdue) return false
+      if (due === 'week' && !(open && n !== null && n >= 0 && n <= 7)) return false
+      if (due === 'none' && t.dueDate) return false
+    }
+    if (words.length) {
+      const hay = `${t.title || ''} ${t.description || ''}`.toLowerCase()
+      if (!words.every(w => hay.includes(w))) return false
+    }
+    return true
+  })
+}
+
+// How many filters are switched on (the archived toggle is a view option, not a filter).
+export function activeFilterCount({ assignee = '', priorities = [], due = '', query = '' } = {}) {
+  return (assignee ? 1 : 0) + (priorities && priorities.length ? 1 : 0) + (due ? 1 : 0) + (taskSearchActive(query) ? 1 : 0)
+}
+
+// Numbers shown on the quick-filter chips (archived tasks are not work, so not counted).
+export function filterCounts(tasks, today = todayISO()) {
+  const live = tasks.filter(t => !t.archived)
+  return {
+    overdue: live.filter(t => cardState(t, today).overdue).length,
+    week: filterTasks(live, { due: 'week', today }).length,
+    none: live.filter(t => !t.dueDate).length,
+    unassigned: live.filter(t => !t.assigneeId).length
+  }
 }
 
 export function groupByColumn(tasks, columns) {

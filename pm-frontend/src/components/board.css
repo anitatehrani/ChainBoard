@@ -6,6 +6,46 @@
 .board-tools { display: flex; flex-direction: column; gap: var(--s-3); margin-bottom: var(--s-4); }
 .board-tools .load-row { gap: var(--s-2); }
 
+/* ── board filters ─ search, assignee, priority / due chips, result count ── */
+.board-filters { display: flex; flex-direction: column; gap: var(--s-3); }
+.bf-row { display: flex; align-items: flex-start; gap: var(--s-3); flex-wrap: wrap; }
+.bf-row.bf-chips { align-items: center; gap: var(--s-2); }
+.bf-search-wrap { position: relative; flex: 1 1 260px; max-width: 380px; }
+.bf-search {
+  display: flex; align-items: center; gap: var(--s-2);
+  min-height: 36px; padding: 0 var(--s-3);
+  background: var(--surface); color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: var(--r-md);
+}
+.bf-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.bf-search input { flex: 1; min-width: 0; min-height: 34px; padding: 0; background: transparent; border: 0; outline: 0; box-shadow: none; color: var(--text); font: inherit; font-size: var(--fs-sm); }
+.bf-hint { position: absolute; left: var(--s-1); top: calc(100% + 2px); font-size: var(--fs-xs); color: var(--warning); white-space: nowrap; }
+.bf-hint:empty { display: none; }
+.bf-assignee { flex: 0 1 220px; min-width: 180px; }
+.bf-assignee .select { width: 100%; }
+
+.bf-label { font-size: var(--fs-xs); font-weight: var(--fw-semibold); letter-spacing: .04em; text-transform: uppercase; color: var(--text-faint); margin: 0 var(--s-1) 0 var(--s-2); }
+.bf-label:first-child { margin-left: 0; }
+.bf-chip {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  min-height: 32px; padding: 0 var(--s-3);
+  background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: var(--r-pill);
+  font: inherit; font-size: var(--fs-sm); cursor: pointer;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.bf-chip:hover { border-color: var(--text-faint); color: var(--text); }
+.bf-chip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.bf-chip.on { color: var(--accent-hover); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.bf-chip.warn:not(.on) { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+.bf-dot { width: 8px; height: 8px; border-radius: 50%; }
+.bf-n { font-size: var(--fs-xs); opacity: .75; }
+.bf-spacer { flex: 1; }
+.bf-result { font-size: var(--fs-sm); color: var(--text-dim); }
+.bf-clear { background: none; border: 0; padding: var(--s-1) var(--s-2); color: var(--accent-hover); font: inherit; font-size: var(--fs-sm); cursor: pointer; border-radius: var(--r-sm); }
+.bf-clear:hover { text-decoration: underline; }
+.bf-clear:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
 .filter-bar {
   display: flex; flex-wrap: wrap; align-items: center;
   gap: var(--s-2); margin: 0;
