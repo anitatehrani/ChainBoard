@@ -78,6 +78,11 @@ function validActor(actorId) {
     return typeof actorId === 'string' && actorId.trim().length > 0;
 }
 
+// The real fabric-shim names the history fields in camelCase (txId, isDelete);
+// the in-memory test ledger uses snake_case. Accept both.
+function txIdOf(entry) { return entry.txId || entry.tx_id || ''; }
+function isDeleted(entry) { return !!(entry.isDelete || entry.is_delete); }
+
 // ISO time of the transaction that wrote a history entry ('' if unavailable).
 // Taken from the committed block (identical on every peer), never from a local clock.
 function historyTime(result) {
@@ -253,7 +258,7 @@ const PMChaincode = class {
             const result = await iterator.next();
             if (result.done) break;
             history.push({
-                txId: result.value.tx_id,
+                txId: txIdOf(result.value),
                 timestamp: historyTime(result.value),
                 value: JSON.parse(result.value.value.toString())
             });
@@ -503,7 +508,7 @@ const PMChaincode = class {
             const result = await iterator.next();
             if (result.done) break;
             history.push({
-                txId: result.value.tx_id,
+                txId: txIdOf(result.value),
                 timestamp: historyTime(result.value),
                 value: JSON.parse(result.value.value.toString())
             });
@@ -760,13 +765,13 @@ const PMChaincode = class {
         while (true) {
             const result = await iterator.next();
             if (result.done) break;
-            if (result.value.is_delete) continue;
+            if (isDeleted(result.value)) continue;
             const u = JSON.parse(result.value.value.toString());
             const ts = result.value.timestamp;
             const secs = ts && ts.seconds && typeof ts.seconds.toString === 'function'
                 ? Number(ts.seconds.toString()) : Number(ts && ts.seconds);
             history.push({
-                txId: result.value.tx_id,
+                txId: txIdOf(result.value),
                 timestamp: secs ? new Date(secs * 1000).toISOString() : '',
                 value: {
                     email: u.email,

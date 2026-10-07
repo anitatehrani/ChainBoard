@@ -516,7 +516,8 @@ function createApp({ ledger, store, mailer, config = {} }) {
         for (let i = 0; i < txIds.length; i += 4) {
             const batch = txIds.slice(i, i + 4);
             const results = await Promise.all(batch.map(tx => (
-                typeof ledger.checkTx === 'function' ? ledger.checkTx(tx).catch(() => null) : Promise.resolve(null)
+                // a record without a transaction id cannot be checked: "unknown", never "missing"
+                tx && typeof ledger.checkTx === 'function' ? ledger.checkTx(tx).catch(() => null) : Promise.resolve(null)
             )));
             batch.forEach((tx, j) => { checks[tx] = results[j]; });
         }

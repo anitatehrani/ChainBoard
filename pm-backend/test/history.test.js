@@ -30,6 +30,28 @@ test('task history carries a block time and the actor of each change', async () 
     assert.equal(r.body.records[1].value.updatedBy, 'mia@example.com');
 });
 
+test('every record has a transaction id, and the ledger check finds it', async () => {
+    const r = await t.request('GET', '/api/tasks/ht/audit', { cookie: owner.cookie });
+    for (const rec of r.body.records) assert.ok(typeof rec.txId === 'string' && rec.txId.length > 0, 'txId present');
+    assert.equal(r.body.allOnLedger, true);
+});
+
+test('real fabric-shim field names (txId, isDelete) work as well as the mock\'s', async () => {
+    const { PMChaincode } = require('../../pm-chaincode/index.js');
+    const cc = new PMChaincode();
+    const entry = { txId: 'abc123', isDelete: false, timestamp: { seconds: { toString: () => '1760000000' } }, value: Buffer.from(JSON.stringify({ taskId: 'x' })) };
+    const stub = {
+        getHistoryForKey: async () => {
+            let done = false;
+            return { next: async () => (done ? { done: true } : (done = true, { done: false, value: entry })), close: async () => {} };
+        }
+    };
+    const res = await cc.getTaskHistory(stub, ['x']);
+    const hist = JSON.parse(res.payload.toString());
+    assert.equal(hist[0].txId, 'abc123');
+    assert.match(hist[0].timestamp, /^2025-/);
+});
+
 test('project history carries a block time and the actor too', async () => {
     const r = await t.request('GET', '/api/projects/hp/audit', { cookie: owner.cookie });
     assert.equal(r.status, 200);
