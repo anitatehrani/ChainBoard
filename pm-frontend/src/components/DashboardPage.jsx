@@ -30,6 +30,19 @@ function DashboardPage({
   const [status, setStatus] = useState('all')
   const nameInput = useRef(null)
 
+  // "Continue" card: closing it is remembered for that project (per browser) and it
+  // comes back automatically when a different project is opened.
+  const DISMISS_KEY = 'chainboard.resumeDismissed'
+  const [dismissedId, setDismissedId] = useState(() => {
+    try { return localStorage.getItem(DISMISS_KEY) || '' } catch { return '' }
+  })
+  function dismissResume() {
+    if (!selectedProject) return
+    setDismissedId(selectedProject.projectId)
+    try { localStorage.setItem(DISMISS_KEY, selectedProject.projectId) } catch { /* private mode: just this session */ }
+  }
+  const showResume = !!selectedProject && dismissedId !== selectedProject.projectId
+
   const email = currentUser ? currentUser.email : ''
   const counts = projectCounts(myProjects, email)
   const shown = filterProjects(myProjects, { query, status })
@@ -80,6 +93,41 @@ function DashboardPage({
               <button type="submit" className="btn btn-primary">Create project</button>
             </div>
           </form>
+        </section>
+      )}
+
+      {showResume && (
+        <section className="card dash-resume" aria-label="Continue where you left off">
+          <button type="button" className="dash-close" onClick={dismissResume}
+            aria-label="Hide this suggestion" title="Hide">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" /></svg>
+          </button>
+          <div className="dash-resume-main">
+            <span className="dash-eyebrow">Continue where you left off</span>
+            <div className="dash-resume-title">
+              <span>{selectedProject.name}</span>
+              <span className="state-tag" data-state={projectState(selectedProject)}>{selectedProject.status}</span>
+            </div>
+            <p className="dash-resume-desc">{selectedProject.description || 'No description'}</p>
+            <div className="dash-resume-counts">
+              {['todo', 'in-progress', 'done'].map(c => (
+                <span key={c} className="dash-count">
+                  <span className="dash-count-dot" aria-hidden="true" style={{ background: statusMeta[c].color }} />
+                  <b>{summary.counts[c]}</b> {statusMeta[c].label}
+                </span>
+              ))}
+              <span className="dash-count dim">{memberCountLabel(selectedProject.members)}</span>
+            </div>
+            <div className="progress" role="progressbar" aria-label="Tasks done"
+              aria-valuemin={0} aria-valuemax={100} aria-valuenow={summary.percentDone}>
+              <span style={{ width: `${summary.percentDone}%` }} />
+            </div>
+            <p className="progress-text">{summaryText(summary)}</p>
+          </div>
+          <div className="dash-resume-actions">
+            <button onClick={() => goTo('board')} className="btn btn-accent">Open board →</button>
+            <button onClick={() => goTo('project')} className="btn btn-secondary">Manage project</button>
+          </div>
         </section>
       )}
 
@@ -188,35 +236,6 @@ function DashboardPage({
         </div>
       </details>
 
-      {selectedProject && (
-        <section className="card dash-preview" aria-label="Loaded project">
-          <div className="preview-title">{selectedProject.name}</div>
-          <p className="preview-desc">{selectedProject.description}</p>
-          <div className="dash-row">
-            <span className="state-tag" data-state={projectState(selectedProject)}>{selectedProject.status}</span>
-            <span className="context-line" style={{ margin: 0 }}>{memberCountLabel(selectedProject.members)}</span>
-          </div>
-          <div className="stat-grid">
-            {['todo', 'in-progress', 'done'].map(c => (
-              <div key={c} className="stat-card" data-col={c}>
-                <div className="stat-value" style={{ color: statusMeta[c].color }}>
-                  {summary.counts[c]}
-                </div>
-                <div className="stat-label">{statusMeta[c].label}</div>
-              </div>
-            ))}
-          </div>
-          <div className="progress" role="progressbar" aria-label="Tasks done"
-            aria-valuemin={0} aria-valuemax={100} aria-valuenow={summary.percentDone}>
-            <span style={{ width: `${summary.percentDone}%` }} />
-          </div>
-          <p className="progress-text">{summaryText(summary)}</p>
-          <div className="quick-links">
-            <button onClick={() => goTo('project')} className="btn btn-secondary sm">Manage Project →</button>
-            <button onClick={() => goTo('board')} className="btn btn-accent sm">Open Board →</button>
-          </div>
-        </section>
-      )}
     </div>
   )
 }
