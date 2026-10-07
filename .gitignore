@@ -1,5 +1,24 @@
+# dependencies and build output
 node_modules/
-.env
-*.log
 dist/
+dist-ssr/
+coverage/
+
+# secrets and local configuration (never commit these)
+.env
+.env.*
+!.env.example
+
+# runtime data: login sessions (hashed tokens), mail preview files
+data/
+pm-backend/data/
+
+# logs
+*.log
+npm-debug.log*
+
+# editors and OS
 .vscode/
+.idea/
+.DS_Store
+*.local
