@@ -464,10 +464,10 @@ function createApp({ ledger, store, mailer, config = {} }) {
 
     api.post('/tasks', wrap(async (req, res) => {
         const { taskId, projectId, title, description, priority, dueDate } = req.body || {};
-        if (!taskId || !projectId || !title || !description || !priority) {
-            return res.status(400).json({ error: 'Missing: taskId, projectId, title, description, priority' });
+        if (!taskId || !projectId || !title || !priority) {
+            return res.status(400).json({ error: 'Missing: taskId, projectId, title, priority' });
         }
-        res.status(201).json(await ledger.submit('createTask', taskId, projectId, title, description, priority, dueDate || '', req.user.email));
+        res.status(201).json(await ledger.submit('createTask', taskId, projectId, title, description || '', priority, dueDate || '', req.user.email));
     }));
 
     api.get('/tasks/:id', wrap(async (req, res) => {

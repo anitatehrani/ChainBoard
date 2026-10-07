@@ -23,6 +23,8 @@ function BoardPage({
 }) {
   const [dragOverCol, setDragOverCol] = useState(null)
   const [draggingId, setDraggingId] = useState(null)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const createCheck = selectedProject ? canCreateTask(selectedProject, currentUser.email) : { allowed: false, reason: '' }
   const [query, setQuery] = useState('')
   const [filterAssignee, setFilterAssignee] = useState('')
   const [filterPriorities, setFilterPriorities] = useState([])
@@ -75,31 +77,69 @@ function BoardPage({
 
   return (
     <>
-      <section className="card wide">
-        <div className="card-header">
-          <span className="card-badge task">Task</span>
-          <h2>Create Task in {selectedProject.name}</h2>
-        </div>
-        <form onSubmit={createTask} className="form form-row">
-          <input placeholder="Task ID" value={tForm.taskId}
-            onChange={e => setTForm({ ...tForm, taskId: e.target.value })} required />
-          <input placeholder="Title" value={tForm.title}
-            onChange={e => setTForm({ ...tForm, title: e.target.value })} required />
-          <textarea placeholder="Description" value={tForm.description} rows={1}
-            onChange={e => setTForm({ ...tForm, description: e.target.value })} required />
-          <Select ariaLabel="Priority" value={tForm.priority}
-            onChange={v => setTForm({ ...tForm, priority: v })}
-            options={[
-              { value: 'low', label: 'Low priority' },
-              { value: 'medium', label: 'Medium priority' },
-              { value: 'high', label: 'High priority' }
-            ]} />
-          <DatePicker ariaLabel="Due date" title="Due date (optional)" value={tForm.dueDate}
-            onChange={v => setTForm({ ...tForm, dueDate: v })} />
-          <button type="submit" className="btn btn-success"
-            disabled={isArchived || !canCreateTask(selectedProject, currentUser.email).allowed}
-            title={canCreateTask(selectedProject, currentUser.email).reason}>Create Task</button>
+      <section className="card wide newtask" aria-label="Create a task">
+        <form onSubmit={createTask} className="newtask-form">
+          <div className="newtask-main">
+            <input className="newtask-title" placeholder="What needs to be done?" aria-label="Task title"
+              value={tForm.title} onChange={e => setTForm({ ...tForm, title: e.target.value })}
+              disabled={!createCheck.allowed || isArchived} required />
+            <button type="submit" className="btn btn-primary newtask-go"
+              disabled={isArchived || !createCheck.allowed || !tForm.title.trim()}
+              title={createCheck.reason}>
+              + Add task
+            </button>
+          </div>
+
+          {(createCheck.allowed && !isArchived) && (
+            <>
+              <button type="button" className="newtask-more" aria-expanded={moreOpen}
+                onClick={() => setMoreOpen(o => !o)}>
+                <span className={`newtask-caret ${moreOpen ? 'open' : ''}`} aria-hidden="true">▸</span>
+                {moreOpen ? 'Fewer options' : 'More options'}
+                {!moreOpen && (
+                  <span className="newtask-summary">
+                    {tForm.priority} priority{tForm.dueDate ? ` · due ${tForm.dueDate}` : ''}
+                  </span>
+                )}
+              </button>
+
+              {moreOpen && (
+                <div className="newtask-extra">
+                  <label className="nt-field nt-wide">
+                    <span>Description <i>(optional)</i></span>
+                    <textarea placeholder="Add details, links or acceptance criteria" value={tForm.description} rows={3}
+                      onChange={e => setTForm({ ...tForm, description: e.target.value })} />
+                  </label>
+                  <div className="nt-field">
+                    <span>Priority</span>
+                    <Select ariaLabel="Priority" value={tForm.priority}
+                      onChange={v => setTForm({ ...tForm, priority: v })}
+                      options={[
+                        { value: 'low', label: 'Low priority' },
+                        { value: 'medium', label: 'Medium priority' },
+                        { value: 'high', label: 'High priority' }
+                      ]} />
+                  </div>
+                  <div className="nt-field">
+                    <span>Due date <i>(optional)</i></span>
+                    <DatePicker ariaLabel="Due date" value={tForm.dueDate}
+                      onChange={v => setTForm({ ...tForm, dueDate: v })} />
+                  </div>
+                  <label className="nt-field">
+                    <span>Task ID <i>(optional)</i></span>
+                    <input placeholder="Generated automatically" value={tForm.taskId}
+                      onChange={e => setTForm({ ...tForm, taskId: e.target.value })} />
+                  </label>
+                </div>
+              )}
+            </>
+          )}
         </form>
+        {(isArchived || !createCheck.allowed) && (
+          <p className="context-line" role="status" style={{ margin: 'var(--s-2) 0 0' }}>
+            {isArchived ? 'This project is archived, so no new tasks can be added.' : createCheck.reason}
+          </p>
+        )}
       </section>
 
       <section className="card wide">

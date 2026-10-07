@@ -379,10 +379,12 @@ function App() {
   async function createTask(e) {
     e.preventDefault()
     if (!selectedProject) return notify('Load a project first', 'error')
+    // The task id is generated unless the person typed their own (task keys are global on the ledger).
+    const taskId = tForm.taskId.trim() || `T-${generateProjectId()}`
     const res = await authFetch(`${API}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...tForm, projectId: selectedProject.projectId })
+      body: JSON.stringify({ ...tForm, taskId, title: tForm.title.trim(), projectId: selectedProject.projectId })
     })
     const data = await res.json()
     if (res.ok) {

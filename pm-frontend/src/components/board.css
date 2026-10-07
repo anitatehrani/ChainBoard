@@ -6,6 +6,42 @@
 .board-tools { display: flex; flex-direction: column; gap: var(--s-3); margin-bottom: var(--s-4); }
 .board-tools .load-row { gap: var(--s-2); }
 
+/* ── create-task bar: one title field, everything else under "More options" ── */
+.newtask { padding: var(--s-4) var(--s-5); }
+.newtask-form { display: flex; flex-direction: column; gap: var(--s-2); }
+.newtask-main { display: flex; gap: var(--s-3); align-items: stretch; }
+.newtask-title { flex: 1; min-width: 0; min-height: 48px; padding: 0 var(--s-4); font-size: var(--fs-lg); }
+.newtask-go { min-height: 48px; padding: 0 var(--s-5); white-space: nowrap; }
+
+.newtask-more {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: var(--s-2);
+  background: none; border: 0; padding: var(--s-1) 0; cursor: pointer;
+  color: var(--text-dim); font: inherit; font-size: var(--fs-sm);
+}
+.newtask-more:hover { color: var(--text); }
+.newtask-more:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-sm); }
+.newtask-caret { display: inline-block; transition: transform var(--t-fast) var(--ease); font-size: 11px; }
+.newtask-caret.open { transform: rotate(90deg); }
+.newtask-summary { color: var(--text-faint); text-transform: capitalize; }
+.newtask-summary::before { content: '·'; margin: 0 var(--s-2); }
+
+.newtask-extra {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-3);
+  padding: var(--s-4); background: color-mix(in srgb, var(--text) 3%, transparent);
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+}
+.nt-field { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+.nt-field > span { font-size: var(--fs-xs); color: var(--text-dim); }
+.nt-field > span i { font-style: normal; color: var(--text-faint); }
+.nt-wide { grid-column: 1 / -1; }
+.nt-field input, .nt-field textarea { width: 100%; min-height: 40px; }
+.nt-field textarea { resize: vertical; }
+@media (max-width: 720px) {
+  .newtask-main { flex-direction: column; }
+  .newtask-extra { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .newtask-caret { transition: none; } }
+
 /* ── board filters ─ search, assignee, priority / due chips, result count ── */
 .board-filters { display: flex; flex-direction: column; gap: var(--s-3); }
 .bf-row { display: flex; align-items: flex-start; gap: var(--s-3); flex-wrap: wrap; }
