@@ -53,6 +53,18 @@ Design rules the chaincode follows: it is **deterministic** (no hashing, randomn
 
 ## Quick start
 
+### The short way: one command
+
+With the prerequisites below installed and Docker running, from the repository folder:
+
+```bash
+bash start.sh            # network + chaincode (if none is running), IPFS, backend, frontend, demo data
+bash start.sh --fresh    # wipe and recreate the ledger first
+bash stop.sh             # stop backend and frontend  (add --all to also stop IPFS and the Fabric network)
+```
+
+Open <http://localhost:5173> and sign in as `anita.tehrani` (see the demo data section). Logs are in `.run/`. The script reuses a network that is already running, so starting again after a reboot of the dev servers takes seconds; a network that was shut down is recreated and the demo data loaded again. The step-by-step version below is what the script does.
+
 ### Prerequisites
 
 - Linux or WSL2 with Docker, and the Hyperledger Fabric binaries and `test-network` from [fabric-samples](https://github.com/hyperledger/fabric-samples)

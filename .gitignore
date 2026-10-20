@@ -13,6 +13,9 @@ coverage/
 data/
 pm-backend/data/
 
+# process ids and logs written by start.sh
+.run/
+
 # logs
 *.log
 npm-debug.log*
