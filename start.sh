@@ -47,8 +47,10 @@ NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
 port_open() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
 wait_for() {   # wait_for <name> <port> <seconds>
   local i
+  local log="$RUN/${1,,}.log"
   for ((i = 0; i < $3; i++)); do port_open "$2" && return 0; sleep 1; done
-  die "$1 did not start on port $2 within $3 seconds. See $RUN/*.log"
+  [ -f "$log" ] && { printf '\n--- last lines of %s ---\n' "$log"; tail -n 25 "$log"; printf -- '--- end ---\n'; }
+  die "$1 did not start on port $2 within $3 seconds."
 }
 
 # ── 1. Fabric network and chaincode ────────────────────────────────────
@@ -95,8 +97,11 @@ start_service() {   # start_service <name> <dir> <port> <wait seconds>
     echo "$name already running on port $port."
     return
   fi
-  [ -d "$dir/node_modules" ] || { echo "Installing $name dependencies (first run)..."; ( cd "$dir" && npm install --no-audit --no-fund ) > "$RUN/$name-install.log" 2>&1 \
-      || { tail -n 20 "$RUN/$name-install.log"; die "npm install failed for $name"; }; }
+  # Always run npm install: it takes a second when everything is current, and it picks up
+  # packages added since the last run (a stale node_modules is the usual cause of "Cannot find module").
+  echo "Checking $name dependencies..."
+  ( cd "$dir" && npm install --no-audit --no-fund ) > "$RUN/$name-install.log" 2>&1 \
+    || { tail -n 20 "$RUN/$name-install.log"; die "npm install failed for $name"; }
   ( cd "$dir" && setsid nohup npm run dev >> "$RUN/$name.log" 2>&1 & echo $! > "$RUN/$name.pid" )
   wait_for "$name" "$port" "$secs"
   echo "$name started on port $port."
