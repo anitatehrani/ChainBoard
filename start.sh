@@ -77,16 +77,19 @@ if [ "$IPFS" -eq 1 ]; then
   else
     say "IPFS"
     [ -d "${IPFS_PATH:-$HOME/.ipfs}" ] || ipfs init >> "$RUN/ipfs.log" 2>&1
-    ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["http://localhost:5173"]' >/dev/null
+    ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["http://localhost:5173","http://127.0.0.1:5173"]' >/dev/null
     ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT","POST"]' >/dev/null
+    # The settings above only take effect when the daemon starts, so a daemon
+    # that is already running is restarted to pick them up.
     if port_open 5001; then
-      echo "IPFS already running."
-    else
-      setsid nohup ipfs daemon >> "$RUN/ipfs.log" 2>&1 &
-      echo $! > "$RUN/ipfs.pid"
-      wait_for "IPFS" 5001 40
-      echo "IPFS started."
+      echo "IPFS already running: restarting it so the browser settings apply."
+      ipfs shutdown >> "$RUN/ipfs.log" 2>&1 || true
+      for _ in $(seq 1 20); do port_open 5001 || break; sleep 0.5; done
     fi
+    setsid nohup ipfs daemon >> "$RUN/ipfs.log" 2>&1 &
+    echo $! > "$RUN/ipfs.pid"
+    wait_for "IPFS" 5001 40
+    echo "IPFS started."
   fi
 fi
 

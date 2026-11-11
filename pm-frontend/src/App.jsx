@@ -107,7 +107,9 @@ function App() {
     resetTaskContext()
     setProjectHistory([]); setShowProjectHistory(false)
     refreshBoard(project.projectId)
-    goTo('project')
+    // Opening a project from the dashboard goes straight to its board; members,
+    // roles and history are one click away under "Project settings".
+    goTo('board')
   }
 
   async function handleLogout() {
@@ -129,6 +131,10 @@ function App() {
   const [loadingTask, setLoadingTask] = useState(false)
   const [uploadFile, setUploadFile] = useState(null)
   const [uploading, setUploading] = useState(false)
+  // A file picked on one task must not follow the user to another task:
+  // forget the pending file whenever a different task is opened.
+  const openTaskId = selectedTask ? selectedTask.taskId : null
+  useEffect(() => { setUploadFile(null) }, [openTaskId])
 
   const [pForm, setPForm] = useState({ name: '', description: '' })
   const [tForm, setTForm] = useState({ taskId: '', title: '', description: '', priority: 'medium', dueDate: '' })
@@ -361,9 +367,11 @@ function App() {
   }
 
   async function loadHistory(taskId) {
-    const res = await authFetch(`${API}/tasks/${taskId}/history`)
-    const data = await res.json()
-    if (res.ok) setHistory(data)
+    try {
+      const res = await authFetch(`${API}/tasks/${taskId}/history`)
+      const data = await res.json()
+      if (res.ok) setHistory(data)
+    } catch { /* a failed refresh keeps the last history on screen */ }
   }
 
   async function loadProjectHistory() {
@@ -572,30 +580,57 @@ function App() {
       // The IPFS upload is not an API call, so it takes the lock explicitly;
       // otherwise a second click could start another upload during the gap.
       const ipfsData = await busy.run(async () => {
-        const ipfsRes = await fetch('http://127.0.0.1:5001/api/v0/add', {
-          method: 'POST',
-          body: formData
-        })
+        let ipfsRes
+        try {
+          ipfsRes = await fetch('http://127.0.0.1:5001/api/v0/add?pin=true', { method: 'POST', body: formData })
+        } catch {
+          // a network error here means IPFS is down, or it refused this page's origin (CORS)
+          throw new Error('the IPFS node cannot be reached. Is IPFS running, and was it restarted after its CORS settings changed?')
+        }
+        if (!ipfsRes.ok) {
+          const text = await ipfsRes.text().catch(() => '')
+          throw new Error(`IPFS answered ${ipfsRes.status}${text ? `: ${text.slice(0, 120)}` : ''}`)
+        }
         return ipfsRes.json()
       })
-      const cid = ipfsData.Hash
+      const cid = ipfsData && ipfsData.Hash
+      if (!cid) throw new Error('IPFS did not return a content ID')
 
-      const res = await authFetch(`${API}/tasks/${selectedTask.taskId}/files`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: uploadFile.name, ipfsCid: cid })
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setSelectedTask(data)
+      const taskId = selectedTask.taskId
+      const done = (task) => {
+        if (task) setSelectedTask(task)
         notify(`File attached — CID: ${cid.slice(0, 12)}...`)
         setUploadFile(null)
-        loadHistory(selectedTask.taskId)
-      } else notify(data.error, 'error')
+        // let the same file be chosen again later (onChange fires only on a change)
+        const input = document.getElementById('fileInput')
+        if (input) input.value = ''
+        loadHistory(taskId).catch(() => { /* the auto-refresh will catch up */ })
+      }
+
+      // Step 2: record the CID on the ledger. A write waits for a block (~2 s);
+      // if the reply is lost on the way back, the transaction may still have been
+      // committed, so check the task before reporting an error.
+      let res, data
+      try {
+        res = await authFetch(`${API}/tasks/${taskId}/files`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: uploadFile.name, ipfsCid: cid })
+        })
+        data = await res.json().catch(() => ({}))
+      } catch {
+        const check = await authFetch(`${API}/tasks/${taskId}`).catch(() => null)
+        const task = check && check.ok ? await check.json().catch(() => null) : null
+        if (task && (task.attachments || []).some(a => a.cid === cid)) { done(task); return }
+        throw new Error('the file is on IPFS, but the backend did not answer while recording it. Reload the task to check.')
+      }
+      if (res.ok) done(data)
+      else notify(data.error || `The backend refused the attachment (HTTP ${res.status}).`, 'error')
     } catch (err) {
       notify(`Upload failed: ${err.message}`, 'error')
+    } finally {
+      setUploading(false)
     }
-    setUploading(false)
   }
 
   const statusMeta = {
@@ -717,6 +752,7 @@ function App() {
 
       {page === 'task' && (
         <TaskPage
+          key={selectedTask ? selectedTask.taskId : 'none'}
           currentUser={currentUser}
           selectedProject={selectedProject} selectedTask={selectedTask} history={history}
           loadTaskId={loadTaskId} setLoadTaskId={setLoadTaskId}
