@@ -1,0 +1,63 @@
+\chapter{Reproducing the Prototype and its Evaluation}
+\label{app:reproduce}
+
+This appendix lists the steps needed to run the prototype and repeat the measurements of \Cref{ch:results}. The source code is in the repository named in the project README; the commands assume Linux or WSL2 with Docker, Node.js 20.9 or newer, and the Hyperledger Fabric binaries and \texttt{test-network} of the \texttt{fabric-samples} repository.
+
+\section{Starting the Network and the Application}
+\label{app:start}
+
+\begin{lstlisting}[numbers=none, language={}, basicstyle=\ttfamily\footnotesize]
+cd ~/fabric-samples/test-network
+./network.sh down
+./network.sh up createChannel -c mychannel
+./network.sh deployCC -ccn pmcc -ccp ../dpm-project/pm-chaincode \
+    -ccl javascript -ccv 1.0 -ccs 1
+
+cd ~/fabric-samples/dpm-project/pm-backend  && npm install && npm run dev
+cd ~/fabric-samples/dpm-project/pm-frontend && npm install && npm run dev
+\end{lstlisting}
+
+The chaincode functions changed signature when permissions were added, so after any chaincode change it is simplest to recreate the network with \texttt{./network.sh down}. Demonstration data (five accounts, four projects and their tasks) can be loaded with \texttt{npm run seed} in the backend folder.
+
+\section{Tests and Benchmark}
+\label{app:tests}
+
+\begin{lstlisting}[numbers=none, language={}, basicstyle=\ttfamily\footnotesize]
+cd pm-backend  && npm test            # backend suite, no network needed
+cd pm-frontend && npm test            # frontend decision logic
+cd pm-backend  && npm run benchmark   # needs the running network and backend
+npm run verify-audit -- audit-task-<id>.json   # offline check of a report
+\end{lstlisting}
+
+The benchmark writes its measurements to \texttt{benchmark-results.json} and \texttt{benchmark-results.csv}, from which \Cref{tab:benchmark} is filled in.
+
+\section{Summary of the REST API}
+\label{app:api}
+
+\Cref{tab:api} lists the main endpoints. All endpoints other than sign-in and sign-up require a valid session cookie, and state-changing requests are checked against the \texttt{Origin} and \texttt{Host} headers.
+
+\begin{table}[tb]
+    \centering
+    \small
+    \begin{tabular}{p{1.3cm}p{5.6cm}p{5.4cm}}
+        \toprule
+        Method & Path & Chaincode function \\
+        \midrule
+        POST & \texttt{/api/projects} & \texttt{createProject} \\
+        POST & \texttt{/api/projects/\{id\}/members} & \texttt{addProjectMember} \\
+        DELETE & \texttt{/api/projects/\{id\}} & \texttt{archiveProject} \\
+        GET & \texttt{/api/projects/\{id\}/tasks} & \texttt{getProjectTasks} \\
+        GET & \texttt{/api/projects/\{id\}/audit} & \texttt{getProjectHistory} + ledger check \\
+        POST & \texttt{/api/tasks} & \texttt{createTask} \\
+        PUT & \texttt{/api/tasks/\{id\}/assign} & \texttt{assignTask} \\
+        PUT & \texttt{/api/tasks/\{id\}/status} & \texttt{updateTaskStatus} \\
+        PUT & \texttt{/api/tasks/\{id\}/meta} & \texttt{updateTaskMeta} \\
+        POST & \texttt{/api/tasks/\{id\}/comments} & \texttt{addComment} \\
+        POST & \texttt{/api/tasks/\{id\}/files} & \texttt{attachFile} \\
+        DELETE & \texttt{/api/tasks/\{id\}} & \texttt{archiveTask} \\
+        GET & \texttt{/api/tasks/\{id\}/audit} & \texttt{getTaskHistory} + ledger check \\
+        \bottomrule
+    \end{tabular}
+    \caption{Main REST endpoints and the chaincode functions they invoke.}
+    \label{tab:api}
+\end{table}

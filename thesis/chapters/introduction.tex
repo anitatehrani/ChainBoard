@@ -1,0 +1,39 @@
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Motivation}
+\label{sec:motivation}
+
+Software teams plan and track their work in tools such as Trello, Jira, Asana, GitHub Projects or GitLab. These tools work well, but in all of them one company stores every task, every status change and every log of who did what. If a team wants to be sure that the history of a task has not been changed, it can only trust the provider. There is no way to check.
+
+Most of the time this is fine. It becomes a problem when the people working on a project do not fully trust each other, or when they must be able to prove later who did what and when. Examples are projects shared by several companies, outsourced development, and academic or regulated work where accountability has to be shown, not just claimed.
+
+Permissioned blockchains such as Hyperledger Fabric were built for this situation: a known group of organizations shares a record of changes that none of them can rewrite alone. \textcite{adel2023} used Fabric together with the InterPlanetary File System (IPFS) to manage shared data in construction projects, keeping metadata on the ledger and documents on IPFS. Their data model, however, is made for construction sites, not for software teams.
+
+In this thesis I take the same Fabric and IPFS approach and apply it to software project management. The result, ChainBoard, looks like a normal task board, with projects, tasks, priorities, assignments, comments and file attachments, but its history is stored on a ledger and every user can verify it.
+
+\section{Research Questions}
+\label{sec:rqs}
+
+\begin{description}
+    \item[RQ1] Can the Fabric and IPFS approach used for construction data be adapted to software project management, with the functions teams expect from tools like Trello or Jira?
+    \item[RQ2] Can the rules of who may do what in a project be enforced by the chaincode itself, so that they do not depend on the backend or the user interface?
+    \item[RQ3] How can the history of a task or project be made tamper-evident, and checkable by a person who has no access to the blockchain network?
+    \item[RQ4] What does this cost in speed, and where are its limits?
+\end{description}
+
+\section{Contributions}
+\label{sec:contributions}
+
+The thesis makes four contributions:
+\begin{enumerate}
+    \item a data model and chaincode for accounts, projects and tasks on Hyperledger Fabric, with file attachments on IPFS;
+    \item role-based permissions checked by the chaincode on every change;
+    \item an audit check that compares each record of a history with the ledger and produces a report with a digest chain that can be verified offline;
+    \item an evaluation with functional tests, a benchmark and a threat model.
+\end{enumerate}
+
+\section{Structure of the Thesis}
+\label{sec:content}
+
+\Cref{ch:background} explains the concepts used later: project management and agile methods, blockchains, Hyperledger Fabric and IPFS. \Cref{ch:related} discusses similar systems and where ChainBoard differs from them. \Cref{ch:method} describes the design and implementation, \Cref{ch:results} the evaluation, and \Cref{ch:conclusion} answers the research questions and lists the limitations and future work. The appendix explains how to run the prototype and repeat the measurements.

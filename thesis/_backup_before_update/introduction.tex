@@ -1,0 +1,26 @@
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Motivation}
+\label{sec:motivation}
+
+Project management platforms such as Trello, Jira, Asana, GitHub Projects, and GitLab are the default tools used by software teams today to plan, assign, and track work (\Cref{sec:traditional-pm}). These platforms are mature and effective at their core task, but they share an architectural property that is easy to overlook: every project record, every status change, and every audit trail they produce is stored and controlled entirely by a single provider. If a team wants to verify \emph{independently} that a task's history has not been altered, there is no mechanism to do so — they can only trust that the platform has not modified it.
+
+This matters in any collaborative setting where trust between participants cannot be assumed, or where an independently verifiable record of who did what, and when, is itself a requirement rather than a convenience. Multi-organization software projects, outsourced development work, and academic or regulatory contexts where accountability must be demonstrable are all cases where a centrally-controlled audit log is a weaker guarantee than participants may need.
+
+Blockchain technology, and permissioned blockchain frameworks such as Hyperledger Fabric in particular (\Cref{sec:fabric}), were designed to solve exactly this class of problem: providing a shared, tamper-evident record of state changes among a known set of participants, without requiring any single participant to be fully trusted. \textcite{adel2023} demonstrate that this approach is practical for collaborative data management by applying it to the construction industry (\Cref{sec:adel}), combining Hyperledger Fabric for on-chain metadata with the InterPlanetary File System (IPFS) for off-chain document storage. However, their system targets a construction-specific data model that does not map onto how software teams organize their work.
+
+This thesis addresses that gap: it applies the validated Fabric-plus-IPFS architectural pattern to the specific domain of software project management, producing a system that offers the functional surface software teams already expect — projects, tasks, priorities, assignments, status boards, file attachments — while replacing the centrally-controlled audit trail of existing tools with an immutable, independently verifiable one.
+
+\section{Content of the Thesis}
+\label{sec:content}
+
+\Cref{ch:background} introduces the concepts needed to understand the rest of the document: the structure and requirements of software project management (\Cref{sec:pm}), the limitations of existing centralized platforms (\Cref{sec:traditional-pm}), and the technical foundations — blockchain, smart contracts, Hyperledger Fabric, and IPFS — that the proposed system builds on.
+
+\Cref{ch:related} discusses \textcite{adel2023} in depth, the closest prior work to this thesis, and uses it to precisely position this thesis' contribution relative to both the blockchain-based data management literature and the traditional project management tools discussed in \Cref{ch:background}.
+
+\Cref{ch:method} describes the system itself: its layered architecture (\Cref{sec:architecture}), the chaincode that governs project and task state on the Fabric ledger (\Cref{sec:chaincode-design}), the integration with IPFS for file attachments (\Cref{sec:ipfs-integration}), the backend API that exposes this functionality over HTTP (\Cref{sec:backend}), and the frontend interface used to interact with it (\Cref{sec:frontend}). This chapter also discusses a concrete implementation issue encountered during development — a chaincode determinism bug caused by including timestamps generated independently by each peer — as an illustration of a constraint that is easy to overlook when building Fabric-based systems.
+
+\Cref{ch:results} evaluates the resulting prototype against the requirements set out in \Cref{sec:pm}, demonstrating the end-to-end workflow — from project creation through task assignment, status transitions, and file attachment — and examining the immutable audit trail the system produces as its central contribution.
+
+Finally, \Cref{ch:conclusion} summarizes what was achieved, discusses the limitations of the current prototype, and outlines directions for future work.

@@ -1,0 +1,49 @@
+\chapter{Related Work}
+\label{ch:related}
+
+\section{Fabric and IPFS in Construction}
+\label{sec:adel}
+
+The work closest to this thesis is the system of \textcite{adel2023} for construction projects. A construction project involves several independent companies, such as contractors, architects and engineers, who share task data and documents and need a record of changes that no single party controls. Adel et al.\ store task and progress records on Hyperledger Fabric and large files such as drawings and reports on IPFS, with only the CID kept on the ledger. They also use Fabric channels and private data to limit what each party can see.
+
+ChainBoard follows the same split between on-chain metadata and off-chain files. The difference is the domain. A construction task is a physical milestone with drawings and permits, while a software task is an issue with a priority, an assignee and a short to-do, in-progress, done workflow. Software teams are also used to tools like Jira and expect a similar interface. These differences shape the data model and the user interface of ChainBoard.
+
+\section{Blockchain-Based Project Management}
+\label{sec:related-pm}
+
+Reviews of the field find that blockchain is used in project management mostly where several parties must coordinate and check each other's work, and that outside construction most systems are still prototypes~\cite{noteboom2026coordination}. Three systems are close to ChainBoard.
+
+\textcite{batista2021} built a project management tool on Hyperledger Fabric in a master's thesis. Its chaincode handles projects, users, tasks with dependencies, timesheets and an automatic risk analysis, and every user has their own Fabric identity. It offers an API but no user interface, and users cannot verify a history themselves. In load tests on one laptop it reached at most 41.6 write and 159.1 read transactions per second.
+
+Scrum-Chain~\cite{silva_scrumchain} records the Scrum cycle (backlog, sprints and tasks) in Solidity contracts on an Ethereum test network. Users sign every action with the MetaMask wallet, and the data is also copied to a PostgreSQL database, which the interface reads. It is one of the few such systems tested with users: ten student teams used it for several sprints, rated it positively and named the audit trail as its most useful feature, while the wallet was the main source of problems.
+
+ChainAgile~\cite{qureshi2024chainagile} supports distributed Scrum teams on a private Ethereum network, with contracts for user stories, acceptance tests and payments, and IPFS for files.
+
+\section{Tamper-Evident Audit Logs}
+\label{sec:related-logging}
+
+Blockchains have also been used just to protect audit logs. BlockAudit~\cite{ahmad2018blockaudit}, for example, turns the entries of a normal audit log into transactions on Hyperledger. In such systems the log is separate from the data it describes. In ChainBoard the ledger is the only place where the project data is stored, so the history and the data cannot drift apart.
+
+\section{Positioning}
+\label{sec:positioning}
+
+\Cref{tab:related} compares ChainBoard with the systems above. ChainBoard is not the most complete of them: it has no sprints, and unlike Batista's tool it does not give every person a Fabric identity. What it adds is the combination of a familiar board interface without wallets or fees, permissions checked by the chaincode, the ledger as the only data store, and an audit check that ordinary users can run and repeat offline.
+
+\begin{table}[!htb]
+    \centering
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{llcccc}
+        \toprule
+        System & Platform & \shortstack{User\\interface} & \shortstack{No wallet\\needed} & \shortstack{Ledger is the\\only store} & \shortstack{Users can\\verify history} \\
+        \midrule
+        Adel et al.~\cite{adel2023} & Fabric + IPFS & no (CLI) & yes & yes & no \\
+        Batista~\cite{batista2021} & Fabric & no & yes & yes & no \\
+        Scrum-Chain & Ethereum & yes & no & no & no \\
+        ChainAgile & Ethereum + IPFS & yes & no & yes & no \\
+        ChainBoard & Fabric + IPFS & yes & yes & yes & yes \\
+        \bottomrule
+    \end{tabular}
+    \caption{ChainBoard compared with related systems.}
+    \label{tab:related}
+\end{table}

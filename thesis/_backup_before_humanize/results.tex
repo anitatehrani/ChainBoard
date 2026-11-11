@@ -1,0 +1,180 @@
+\chapter{Results}
+\label{ch:results}
+
+This chapter evaluates the prototype of \Cref{ch:method} against the functional requirements of \Cref{sec:pm}: creating and archiving projects, role-based membership and permissions, creating and assigning tasks, status transitions, file attachments, and an immutable, verifiable audit history. Each requirement was demonstrated on the deployed system, running on a local Hyperledger Fabric network with two organizations and a connected IPFS node, and exercised end to end through the REST API and the browser frontend (\Cref{sec:backend,sec:frontend}). \Cref{sec:results-requirements} maps each requirement to its evidence, and \Cref{sec:results-agile} states which elements of Scrum and Kanban the prototype covers. The chapter then reports the automated tests (\Cref{sec:results-tests}), the performance evaluation (\Cref{sec:results-performance}) and an analysis of what the design protects against and what it does not (\Cref{sec:results-threats}).
+
+\section{Requirements Coverage}
+\label{sec:results-requirements}
+
+\Cref{tab:requirements} restates the requirements of \Cref{sec:pm} in the form used for the evaluation (R1--R9), says where each one is implemented, and points to the section with the evidence. It also links them to the research questions of \Cref{sec:rqs}: R1, R3--R6 and R9 concern RQ1, R2 concerns RQ2, and R7--R8 concern RQ3.
+
+\begin{table}[tb]
+    \centering
+    \small
+    \begin{tabular}{p{0.7cm}p{4.4cm}p{3.3cm}p{3.2cm}}
+        \toprule
+        ID & Requirement & Implemented in & Evidence \\
+        \midrule
+        R1 & Create and archive projects & \Cref{sec:chaincode-design} & \Cref{sec:results-chaincode} \\
+        R2 & Roles, and rules of who may do what, enforced by the ledger & \Cref{sec:permissions} & \Cref{sec:results-permissions} \\
+        R3 & Create tasks and assign them to members & \Cref{sec:chaincode-design} & \Cref{sec:results-chaincode,sec:results-permissions} \\
+        R4 & Status workflow with valid transitions only & \Cref{sec:chaincode-design} & \Cref{sec:results-chaincode,sec:results-tests} \\
+        R5 & File attachments anchored by content identifier & \Cref{sec:ipfs-integration} & \Cref{sec:results-ipfs} \\
+        R6 & Comments by project members & \Cref{sec:chaincode-design} & \Cref{sec:results-e2e} \\
+        R7 & Immutable history showing what changed, who changed it and when & \Cref{sec:history-order} & \Cref{sec:results-audit} \\
+        R8 & History that a person can verify independently of the application & \Cref{sec:audit-verification} & \Cref{sec:results-audit} \\
+        R9 & User accounts and sessions, with account events recorded on the ledger & \Cref{sec:authentication} & \Cref{sec:results-tests,sec:results-e2e} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Requirements, where they are implemented and where the evidence is reported.}
+    \label{tab:requirements}
+\end{table}
+
+\section{Chaincode Deployment and Basic Operations}
+\label{sec:results-chaincode}
+
+The chaincode of \Cref{sec:chaincode-design} was packaged, installed on both peers, approved by both organizations and committed to the channel with Fabric's standard lifecycle (install, approve, commit). Adding permissions (\Cref{sec:permissions}) changed the signatures of the state-changing functions, so a new chaincode version has to be deployed together with the backend; on the development network the simplest way is to recreate the network. After deployment, the main project and task functions were called directly through the Fabric peer CLI to check the chaincode on its own, without the backend and the frontend.
+
+A project was created with \texttt{createProject}, and \texttt{getProject} showed that the record stored the owner as the only member and set the status to \texttt{active}. Calling \texttt{addProjectMember} on the same project added a second member to the \texttt{members} array, and a further \texttt{getProject} call showed the change in the world state. A task was then created in the project with \texttt{createTask}, starting with status \texttt{todo} and no assignee; \texttt{assignTask} assigned it to one of the project's members, and \texttt{updateTaskStatus} moved it from \texttt{todo} to \texttt{in-progress}. Both changes were visible at once through \texttt{getTask}.
+
+An early version of the chaincode failed during endorsement with a mismatch between the peers of the two organizations, caused by the non-deterministic timestamps discussed in \Cref{sec:determinism}. After the timestamp fields were removed from the write logic, all later transactions were endorsed and committed on both peers.
+
+\section{Role-Based Permissions}
+\label{sec:results-permissions}
+
+The permission rules of \Cref{tab:permissions} were checked with a seeded demonstration project and with automated tests, using five accounts: an owner, an administrator, two contributors and an outsider. The tests go through the backend API, which runs the real chaincode, and cover the following behavior.
+
+\begin{itemize}
+    \item A person outside the project cannot create tasks, comment, change a task or add members. Every attempt is answered with HTTP status 403 and nothing is written to the ledger.
+    \item A contributor cannot add members. An administrator can add contributors but not administrators or owners, and only the owner can grant any role.
+    \item A contributor can take an unassigned task, but cannot assign it to someone else or take over a task already assigned to another person. The assignee, an administrator and the owner can change it.
+    \item Only owners and administrators can archive a task, and only the owner can archive the project, after which no members or tasks can be added.
+    \item The chaincode itself refuses a call without an acting person, whatever the backend does, and a request body that names a different acting person is ignored.
+\end{itemize}
+
+A refused transaction is not committed, so a refusal leaves no trace in the history. This is intended: the history records changes of state, not attempts.
+
+\section{Immutable Audit Trail and its Verification}
+\label{sec:results-audit}
+
+The main contribution of the thesis is a complete, tamper-evident history for every project and task, in addition to their current state. To check it, \texttt{getTaskHistory} was called on a task that had been created, assigned and moved through several statuses. The function returned every past version of the task in chronological order, from its creation with status \texttt{todo} and no assignee, through the assignment, to the move to \texttt{in-progress}. Each entry showed the status and assignee at that point, the person who made the change and the commit time. The history comes directly from Fabric's blockchain history, and no operation of the chaincode or the API can alter or remove its past entries.
+
+The frontend shows the same behavior: the audit trail view (\Cref{sec:frontend}) lists each past record of a task or project as a separate entry with what changed, who changed it and when, so a non-technical user can see the guarantee for themselves.
+
+The verification procedure of \Cref{sec:audit-verification} was run on tasks and projects of the demonstration data. For an untouched history, the check reports that all records are in committed blocks and shows the head digest, and running the stand-alone verifier on the downloaded report gives the same digest. In the automated tests, editing any record of a downloaded report, or removing or reordering records, makes the verifier name the first record whose digest no longer matches, and a transaction unknown to the peer is reported as missing.
+
+\section{IPFS File Attachment}
+\label{sec:results-ipfs}
+
+The IPFS integration of \Cref{sec:ipfs-integration} was tested by attaching a file to a task through the frontend. The file was uploaded to the local IPFS node through its HTTP API, which returned a content identifier. The CID and the original file name were then passed to the chaincode's \texttt{attachFile} function and became part of the task's on-chain state: the file appeared at once in the task's attachment list and, in the history, as a new entry. Fetching the file from the IPFS gateway with the recorded CID returned the original file unchanged. The content-addressing guarantee of \Cref{sec:ipfs} therefore holds in practice, since the CID on the ledger identifies the exact file that was attached and can be checked against it.
+
+\section{End-to-End Workflow via the Backend API and Frontend}
+\label{sec:results-e2e}
+
+The full request path of \Cref{sec:architecture} (frontend, backend API, Fabric Gateway and chaincode, plus the IPFS path for attachments) was also tested as a whole. Through the frontend, an account was created and signed in, a project was created, a second person was added with a role, and a task was added, assigned, moved through its status workflow, commented on and given a file; finally the audit trail was verified. None of these steps used the Fabric CLI or called the chaincode directly. All of them succeeded, and the resulting state matched what had been checked at the chaincode layer in \Cref{sec:results-chaincode}, which shows that the backend and frontend expose the chaincode's functions without introducing differences.
+
+\section{Automated Tests}
+\label{sec:results-tests}
+
+The backend has a suite of more than 170 automated tests, run with Node.js's built-in test runner. The tests run the \emph{real} chaincode source on an in-memory implementation of Fabric's stub interface, behind the real Express application, so no Fabric network is needed. The in-memory ledger reproduces the properties the tests depend on: a transaction's writes are applied only if the chaincode succeeds (a rejected transaction leaves no partial state), queries never commit anything, each key has a history with transaction identifiers and timestamps, and range scans are ordered by key. The suite covers sign-up and sign-in, sessions, protection against cross-site requests, rate limiting, password rules (including a check that the browser and the server apply the same rules), Google sign-in, e-mail confirmation, ownership taken from the session, the permission matrix of \Cref{tab:permissions}, the digest chain and audit endpoints, and the project and task rules. The decision logic of every frontend screen (filters, permissions, navigation, refresh behavior, formatting) is covered by unit tests with the same runner, without a browser.
+\ag{Run \texttt{npm test} in both folders just before submitting and give the exact numbers here (backend and frontend test counts).}
+
+The in-memory ledger also shows the limits of such tests. Two defects appeared only when the system ran against the real network. The real Fabric library returns the entries of a history from newest to oldest, and it names their fields differently from the in-memory ledger; until the history functions were corrected (\Cref{sec:history-order}), record numbers, change descriptions and the ledger check were wrong. Tests on a simulated ledger are useful for the business rules, but they do not replace running against the network.
+
+\section{Performance Evaluation}
+\label{sec:results-performance}
+
+\paragraph{Method.} A benchmark script sends real requests through the backend to the Fabric network, so every write is a complete transaction: proposal, endorsement, ordering, validation and commit. The script creates its own temporary account and project and leaves other data alone. It measures the latency of one write at a time (\texttt{createTask}); the write throughput with 1, 2, 4, 8 and 16 concurrent requests on different keys; the behavior under contention, with several writers editing the \emph{same} task at once; and the latency of reading one task and of reading all tasks of a project. Latencies are reported as the 50th and 95th percentile, together with the number of failures, and each configuration should be repeated and the median run reported.
+
+\paragraph{Environment.} \ag{Fill in: CPU model and cores, RAM, Windows with WSL2 or native Linux, Docker and Fabric versions, number of peers and orderers, and the ordering service's batch timeout (the test network's default is 2 seconds).}
+
+\paragraph{Results.} \Cref{tab:benchmark} reports the measurements.
+
+\begin{table}[tb]
+    \centering
+    \small
+    \begin{tabular}{lrrr}
+        \toprule
+        Operation & p50 (ms) & p95 (ms) & Failures \\
+        \midrule
+        Write, one at a time (\texttt{createTask}) & \textit{tbd} & \textit{tbd} & \textit{tbd} \\
+        Read one task & \textit{tbd} & \textit{tbd} & \textit{tbd} \\
+        Read all tasks of a project (range scan) & \textit{tbd} & \textit{tbd} & \textit{tbd} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Latency of single operations through the whole stack on a one-machine test network (to be filled in from \texttt{benchmark-results.csv}).}
+    \label{tab:benchmark}
+\end{table}
+
+\ag{Add a second table of throughput (transactions per second) for 1, 2, 4, 8 and 16 concurrent writers, and the contention result: how many of 8 simultaneous edits of one task succeeded.}
+
+\paragraph{Expected behavior and discussion.} The measured numbers should be compared with the following expected pattern, which is not itself a result. The ordering service's batch timeout dominates the cost of a write, so a single write takes about as long as the timeout plus endorsement and commit. Throughput grows with concurrency, because several transactions share a block, and then levels off. A peer answers reads from its local state, so they are much faster than writes. When several writers edit the same key at once, Fabric's optimistic concurrency control commits about one write per block and rejects the others with a read conflict, which the backend reports as HTTP 409. This is correct behavior, and it constrains the design: the data model gives every task, project and account its own key to avoid keys that many users write at once.
+
+This matches earlier benchmarks of the platform~\cite{thakkar2018performance}, which identify the ordering parameters and key conflicts as the main factors. A conventional database behind the same API would have lower latency and higher throughput; the difference is the cost of a tamper-evident history that no single administrator can rewrite. The thesis does not compare against a conventional database, which would be a natural extension. The measurements cover the whole stack on a single machine, with the load generator sharing the CPU with the network, so they say nothing about a geographically distributed deployment.
+
+\section{Threat Model}
+\label{sec:results-threats}
+
+\paragraph{Trust assumptions.} The Fabric network is assumed to be operated honestly enough that no single party controls both endorsement and ordering. The backend is a trusted gateway, since it holds the organization's Fabric identity, verifies the login session and tells the chaincode who is acting. Browsers are untrusted.
+
+\paragraph{What the design protects against.} An administrator or database operator cannot quietly change a status, a due date or a comment: any change produces a new transaction, and the earlier versions stay in the history. If someone rewrites the history in a \emph{copy} of the data, the digest chain and the per-transaction check make the change detectable, also offline from a downloaded report. Two people cannot claim the same username, phone number or Google account, because index keys written in the same transaction as the account enforce uniqueness. A user cannot perform an action their role forbids even if the backend has a bug, because the chaincode checks the role of the acting person on every state-changing call.
+
+\paragraph{What it does not protect against.} \Cref{tab:threats} lists the remaining risks. They are stated explicitly because they set the limits of the claims made in this thesis.
+
+\begin{table}[tb]
+    \centering
+    \small
+    \begin{tabular}{p{3.6cm}p{8.4cm}}
+        \toprule
+        Threat & Why it remains, and possible mitigation \\
+        \midrule
+        Compromised or malicious backend & Fabric sees only the organization's identity, so the chaincode must trust the acting person reported by the backend; a hacked backend could claim to be the owner. Mitigation: one Fabric certificate per person, so that the chaincode reads the caller from the transaction's client identity. \\
+        A malicious organization controlling all endorsers & The test network has two organizations but, in this deployment, a single trust domain. Mitigation: an endorsement policy requiring both organizations for critical transactions. \\
+        Stolen password or session & Standard web risk, reduced by scrypt hashing, HttpOnly cookies with hashed tokens, rate limiting, cross-site request checks, and sign-out of other devices on password change. \\
+        Unauthorized reading & Reads are not restricted by role: any signed-in user who knows a project identifier can read it. Mitigation: role-checked reads or Fabric private data collections. \\
+        Disappearing attachments & Content addressing proves what a file contained but nothing obliges anybody to keep it. Mitigation: pinning and verifying the CID on download. \\
+        Permanence of personal data & Data written to the ledger cannot be erased, which conflicts with the right to erasure of the GDPR~\cite{gdpr}. Mitigation: keep personal data off-chain or in private data collections and store only hashes on-chain. \\
+        Denial of service & A flood of transactions slows ordering. Mitigation: rate limiting at the backend and limits in the ordering service. \\
+        \bottomrule
+    \end{tabular}
+    \caption{Residual threats and possible mitigations.}
+    \label{tab:threats}
+\end{table}
+
+\section{Support for Agile Practice}
+\label{sec:results-agile}
+
+\Cref{sec:agile} introduced Scrum and Kanban, and \Cref{tab:agile} shows which of their elements ChainBoard supports. The prototype is in practice a Kanban board with a verifiable history. It does not implement the Scrum framework, and this limit of scope was chosen on purpose: the research questions of \Cref{sec:rqs} concern the integrity of the record, not the full range of planning features.
+
+\begin{table}[tb]
+    \centering
+    \small
+    \begin{tabular}{p{4.1cm}p{1.9cm}p{6.1cm}}
+        \toprule
+        Element & Supported & Comment \\
+        \midrule
+        Visual board, workflow stages & yes & Three columns (to do, in progress, done); moving a card is a status transition \\
+        Work items with priority, due date, assignee, comments, files & yes & Task record (\Cref{sec:chaincode-design}) \\
+        Product Backlog & partly & The tasks of a project act as a flat list; no ordering, no product goal \\
+        Sprints, Sprint Backlog, Sprint goal & no & No time-boxed iterations and no assignment of tasks to a Sprint \\
+        Definition of Done & partly & A task can be marked done, but the criteria are not defined or enforced \\
+        Scrum roles (Product Owner, Scrum Master) & no & The owner, admin and contributor roles control permissions only \\
+        Daily Scrum, Review, Retrospective & outside the tool & Meetings; the history of changes can serve as input to a Review \\
+        Estimation, burndown, velocity & no & No effort field and no charts \\
+        Work-in-progress limits & no & Columns have no limit \\
+        Sub-tasks, dependencies, epics & no & Not in the data model \\
+        Verifiable history of every change & yes & The contribution of this thesis; not offered by the tools of \Cref{sec:traditional-pm} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Support for elements of Scrum and Kanban in the prototype.}
+    \label{tab:agile}
+\end{table}
+
+The history is useful for some of the events that the tool does not support as features. A Sprint Review inspects what was done and by whom, and a Retrospective looks at how the work flowed. The record of every status change, with its author and time, is a trustworthy input to both; a reopened task, for instance, is visible and cannot be hidden. Adding sprints and a backlog would need new record types and chaincode functions but no change to the architecture, since a sprint is one more keyed record whose changes go into the same verifiable history (\Cref{sec:future-work}).
+
+\section{Discussion}
+\label{sec:results-discussion}
+
+The results show that the prototype meets the requirements of \Cref{sec:pm}. Projects and tasks are managed through a familiar workflow; the chaincode itself, and not code running in the client, enforces membership, roles and assignments; and every change is recorded permanently with who made it and when, in a form anyone can verify again. The IPFS integration also shows that file attachments can be covered by this guarantee without storing binary data on-chain.
+
+Three lessons came out of the work. The determinism problem of \Cref{sec:determinism} applies to chaincode development in general: logic that is functionally correct can still fail when several peers execute it, for reasons unrelated to the business rules, and the resulting error message gives little help in finding the cause. A test setup that simulates the ledger can differ from the real library in ways that hide defects, as the history ordering showed (\Cref{sec:results-tests}). And the most important limitation is architectural: because the gateway identifies an organization and not a person, a rule such as ``only an owner may archive a project'' holds only as far as the backend that reports who is acting can be trusted (\Cref{sec:results-threats}). The evaluation used a local network with two organizations, not a geographically distributed or production-scale deployment; \Cref{ch:conclusion} discusses the consequences as limitations and future work.

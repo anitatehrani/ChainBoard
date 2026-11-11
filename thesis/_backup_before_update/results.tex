@@ -1,0 +1,37 @@
+\chapter{Results}
+\label{ch:results}
+
+This chapter evaluates the prototype described in \Cref{ch:method} against the functional requirements identified in \Cref{sec:pm}: project creation and archiving, role-based membership, task creation and assignment, status transitions, file attachment, and an immutable audit history. Each requirement is demonstrated through the deployed system running on a local two-organization Hyperledger Fabric network with a connected IPFS node, exercised end to end through the REST API and the browser frontend described in \Cref{sec:backend,sec:frontend}.
+
+\section{Chaincode Deployment and Basic Operations}
+\label{sec:results-chaincode}
+
+The chaincode described in \Cref{sec:chaincode-design} was packaged, installed on both peers, approved by both organizations, and committed to the channel using Fabric's standard lifecycle process (install, approve, commit). Following deployment, the core project and task functions were exercised directly through the Fabric peer CLI to confirm correct behavior at the chaincode layer, independently of the backend and frontend.
+
+A project was created via \texttt{createProject}, and \texttt{getProject} confirmed that the resulting record correctly stored the owner as the sole initial member and set the project status to \texttt{active}. Calling \texttt{addProjectMember} on the same project appended a second member to the \texttt{members} array, and a subsequent \texttt{getProject} call confirmed the update was reflected in the current world state. A task was then created within the project via \texttt{createTask}, initialized with status \texttt{todo} and no assignee; \texttt{assignTask} correctly attached one of the project's members to the task, and \texttt{updateTaskStatus} moved the task from \texttt{todo} to \texttt{in-progress}, both changes being immediately visible via \texttt{getTask}.
+
+An early version of the chaincode failed during endorsement with a mismatch error between the two organizations' peers, traced to the non-deterministic timestamp issue discussed in \Cref{sec:chaincode-design}. After removing the timestamp fields from the write logic, all subsequent transactions endorsed and committed successfully on both peers, confirming the fix.
+
+\section{Immutable Audit Trail}
+\label{sec:results-audit}
+
+The central contribution of this thesis is the availability of a complete, tamper-evident history for every project and task, rather than only their current state. This was verified by calling \texttt{getTaskHistory} on a task that had been created, assigned, and transitioned through multiple status changes. The function returned every past version of the task record in reverse chronological order, each entry showing the exact status and assignee at that point in the task's lifecycle — from its initial creation with no assignee and status \texttt{todo}, through assignment, to its transition to \texttt{in-progress}. Because this history is retrieved directly from Fabric's blockchain history rather than a mutable log, no operation exposed by the chaincode or the API allows any of these past entries to be altered or removed.
+
+This behavior is also directly visible in the frontend: the audit trail view (\Cref{sec:frontend}) renders each past record of a task as a distinct entry, annotated with its status and metadata at that point in time, giving a non-technical user direct visibility into the guarantee the system provides.
+
+\section{IPFS File Attachment}
+\label{sec:results-ipfs}
+
+The IPFS integration described in \Cref{sec:ipfs-integration} was verified by uploading a file through the frontend's file attachment control while viewing a task. The file was uploaded to the local IPFS node via its HTTP API, which returned a content identifier; this CID and the original file name were then submitted to the chaincode's \texttt{attachFile} function and became part of the task's on-chain state, visible immediately in the task's attachment list and, in the immutable history, as a new entry in the task's transaction log. Retrieving the file via the IPFS gateway using the recorded CID returned the original file unchanged, confirming that the content-addressing guarantee described in \Cref{sec:ipfs} holds in practice: the CID stored on the ledger correctly and verifiably identifies the exact file that was attached.
+
+\section{End-to-End Workflow via the Backend API and Frontend}
+\label{sec:results-e2e}
+
+The full request path illustrated in \Cref{sec:architecture} — frontend to backend API to Fabric Gateway to chaincode, and the corresponding IPFS path for file attachments — was exercised as a whole rather than component by component. Using the frontend interface, a project was created, a task was added to it, the task was progressed through its status workflow, a file was attached to it, and the resulting audit trail was inspected, all without direct interaction with the Fabric CLI or the chaincode. Each of these operations completed successfully and the resulting state matched what had been separately verified at the chaincode layer in \Cref{sec:results-chaincode}, confirming that the backend API and frontend correctly and transparently expose the underlying chaincode functionality without introducing discrepancies.
+
+\section{Discussion}
+\label{sec:results-discussion}
+
+The results above show that the core requirements identified in \Cref{sec:pm} are met by the implemented prototype: projects and tasks can be created and managed through a familiar workflow, membership and assignment are enforced against project membership by the chaincode itself rather than trusted client-side logic, and every change is permanently and verifiably recorded. The IPFS integration additionally demonstrates that file attachments can be incorporated into this guarantee without the scalability cost of storing binary data on-chain.
+
+The evaluation in this chapter was conducted on a local two-organization network rather than a geographically distributed or production-scale deployment, and it does not measure transaction throughput or latency under load; these are discussed as limitations and directions for future work in \Cref{ch:conclusion}. The determinism issue discussed in \Cref{sec:results-chaincode} is also worth noting as a general lesson for chaincode development: functionally correct logic can still fail in a multi-peer setting for reasons unrelated to business logic, and this class of bug is easy to introduce and comparatively difficult to diagnose from the resulting error message alone.

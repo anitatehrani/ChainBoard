@@ -1,0 +1,59 @@
+\chapter{Background}
+\label{ch:background}
+
+\section{Project Management}
+\label{sec:pm}
+
+Project management is the work of organizing tasks, people and resources to reach a goal within limits of time, budget and quality~\cite{pmbok}. A project usually goes through five phases: initiation, where the goal and the people involved are defined; planning, where the work is split into tasks with owners and deadlines; execution; monitoring, where progress is compared with the plan; and closing, where the result is delivered and the project archived.
+
+For a software team, a project management tool must at least let people create and assign tasks, follow their status, control who can do what, attach files, comment, and see the history of changes. These are the requirements ChainBoard is built around.
+
+\section{Current Tools and Their Limits}
+\label{sec:traditional-pm}
+
+Trello organizes work as cards on a board, an idea taken from Kanban. Jira, the most common tool in professional software development, adds backlogs, sprints, epics and reports, and is powerful but complex to set up. Asana focuses on coordination across many projects. GitHub Projects and GitLab connect tasks to the code, which makes them natural for developers.
+
+They differ in features, but they share one design: a single provider stores all the data and decides who can see and change it. This has three consequences. First, there is no history that others can check independently; audit logs exist, but the provider controls them. Second, organizations do not control where their data is kept. Third, if the service goes down or is discontinued, every team that depends on it is affected. The first point is the one this thesis addresses.
+
+\section{Agile Methods: Scrum and Kanban}
+\label{sec:agile}
+
+Most software teams work iteratively. In Scrum~\cite{scrumguide2020}, work is done in sprints of at most one month. The Product Owner orders the product backlog, the developers build an increment of the product in each sprint, and the Scrum Master helps the team follow the method. Each sprint starts with planning and ends with a review of the result and a retrospective on how the team worked. Kanban~\cite{anderson2010kanban} has no sprints or roles: the work is shown on a board whose columns are the stages of the work, and the team limits how many items are in progress at once.
+
+Both methods depend on a shared and reliable view of the work: which tasks exist, who is working on them and in which stage they are. This is exactly the information ChainBoard protects.
+
+\section{Blockchain}
+\label{sec:blockchain}
+
+A blockchain is a ledger copied across many nodes, in which each block contains the hash of the previous one~\cite{nakamoto2008bitcoin}. Changing an old block would change every block after it, so a change cannot go unnoticed. Public blockchains such as Bitcoin and Ethereum let anyone join and use expensive consensus mechanisms. Permissioned blockchains only accept known, authenticated members and can use cheaper protocols, which makes them suitable for companies.
+
+A blockchain is not always the right choice. \textcite{wust2018need} suggest asking whether several parties write the data, whether they trust each other, and whether a trusted third party is available. For one team that trusts its own administrator, a normal database is simpler and faster. For several organizations that share a project and want a history none of them can rewrite, a permissioned blockchain fits. This thesis is about the second case.
+
+The programs that run on a blockchain and define how its state may change are called smart contracts. Because the network runs them, no single participant can change the rules alone.
+
+\section{Hyperledger Fabric}
+\label{sec:fabric}
+
+Hyperledger Fabric~\cite{androulaki2018} is an open-source permissioned blockchain. The parts that matter for this thesis are:
+
+\begin{description}
+    \item[Organizations and peers.] Each organization runs one or more peers, and each peer keeps a copy of the ledger.
+    \item[Orderer.] It puts transactions into blocks and sends the blocks to the peers.
+    \item[Channel.] A ledger shared by a group of organizations.
+    \item[Chaincode.] Fabric's name for smart contracts, written in Go, JavaScript or Java.
+    \item[World state and history.] The world state holds the current value of each key. The history holds every earlier value and cannot be changed, so it works as a permanent log.
+    \item[Identities.] Every participant has an X.509 certificate issued by its organization.
+    \item[Endorsement.] Before a transaction is ordered, the endorsing peers run it and must get exactly the same result. When two transactions in one block change the same key, only the first is accepted and the other fails with a read conflict.
+\end{description}
+
+I chose Fabric over Ethereum because the participants of a project are known, no fees or wallets are needed, and data can be kept private between organizations if necessary.
+
+\section{Hash Chains}
+\label{sec:hash-chains}
+
+A log is tamper-evident if changes to it can be detected, even when they cannot be prevented. The usual technique is a hash chain~\cite{schneier1999secure}: each entry is hashed together with the hash of the entry before it. If an entry is changed, removed, added or moved, every hash after it changes, so the last hash is a short fingerprint of the whole log. A blockchain is a hash chain shared by many nodes. ChainBoard also builds a small hash chain over the history of one task, so that a user can keep its fingerprint and check it later (\Cref{sec:audit-verification}).
+
+\section{IPFS}
+\label{sec:ipfs}
+
+The InterPlanetary File System (IPFS)~\cite{benet2014ipfs} is a peer-to-peer file system that finds files by their content instead of their location. A file is hashed, and the hash, called a content identifier (CID), is its address. If the file changes, its CID changes too, so a CID stored on a ledger proves exactly which file was attached. Files can be fetched from any node that has a copy. Storing large files directly on a blockchain is slow and expensive, so the usual approach, which ChainBoard follows, is to keep the file on IPFS and only its CID on the ledger.

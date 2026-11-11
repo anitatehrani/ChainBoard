@@ -1,0 +1,42 @@
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Motivation}
+\label{sec:motivation}
+
+Software teams today plan, assign and track their work in platforms such as Trello, Jira, Asana, GitHub Projects and GitLab (\Cref{sec:traditional-pm}). These platforms do their job well, but they have one architectural property in common that is easy to overlook: a single provider stores and controls every project record, every status change and every audit trail they produce. A team that wants to check \emph{independently} that the history of a task has not been altered has no way to do so, and can only trust that the platform has left it untouched.
+
+This becomes a problem when the participants in a project cannot simply trust each other, or when a verifiable record of who did what, and when, is a requirement in its own right. Software projects shared by several organizations, outsourced development, and academic or regulatory settings where accountability has to be demonstrated are examples. In these settings an audit log controlled by one party may be a weaker guarantee than the participants need.
+
+Permissioned blockchain frameworks such as Hyperledger Fabric (\Cref{sec:fabric}) were designed for this kind of problem. They give a known set of participants a shared, tamper-evident record of state changes, and no single participant has to be fully trusted. \textcite{adel2023} show that the approach works for collaborative data management in the construction industry (\Cref{sec:adel}), using Hyperledger Fabric for on-chain metadata and the InterPlanetary File System (IPFS) for off-chain documents. Their data model, however, is specific to construction and does not match the way software teams organize their work.
+
+This thesis applies the same Fabric-plus-IPFS pattern to software project management. The resulting system offers what software teams already expect from their tools (projects, tasks, priorities, assignments, a status board and file attachments) and replaces the provider-controlled audit trail of existing tools with one that is immutable and can be verified independently.
+
+\section{Research Questions and Objectives}
+\label{sec:rqs}
+
+The thesis is organized around four research questions.
+
+\begin{description}
+    \item[RQ1] Can the Fabric-plus-IPFS pattern validated for construction data (\Cref{sec:adel}) be adapted to software project management, offering the functions that software teams expect from tools such as Trello or Jira?
+    \item[RQ2] Can the rules of who may do what in a project be enforced by the chaincode itself, so that they do not depend on the correctness of the backend or of the user interface?
+    \item[RQ3] How can the recorded history of a task or project be made tamper-evident on the ledger and also \emph{verifiable by a person} who does not have access to the network?
+    \item[RQ4] What does this guarantee cost in latency and throughput, and where do its limits lie?
+\end{description}
+
+The corresponding objectives were to design a data model and chaincode for accounts, projects and tasks (RQ1); to enforce a role-based permission matrix in the chaincode (RQ2); to design and implement an audit verification procedure with a portable report (RQ3); and to measure the prototype and state a threat model (RQ4). \Cref{ch:conclusion} answers each question.
+
+\section{Content of the Thesis}
+\label{sec:content}
+
+\Cref{ch:background} introduces the concepts used in the rest of the document: how software projects are managed (\Cref{sec:pm}), the limits of the existing centralized platforms (\Cref{sec:traditional-pm}), and the technologies the system builds on, namely blockchain, smart contracts, Hyperledger Fabric and IPFS.
+
+\Cref{ch:related} discusses the closest prior work, starting with \textcite{adel2023} and continuing with blockchain-based project management tools, document management systems on Fabric and IPFS, tamper-evident logging and the performance of Fabric. It uses this work to position the contribution of the thesis.
+
+\Cref{ch:method} describes the system: its layered architecture (\Cref{sec:architecture}), the chaincode that holds account, project and task state on the Fabric ledger and enforces role-based permissions (\Cref{sec:chaincode-design}), accounts and login sessions (\Cref{sec:authentication}), the IPFS integration for file attachments (\Cref{sec:ipfs-integration}), the backend API that exposes these functions over HTTP (\Cref{sec:backend}), the audit verification that lets anyone re-check a recorded history (\Cref{sec:audit-verification}), and the frontend (\Cref{sec:frontend}). The chapter also reports two problems met during development: a determinism bug caused by timestamps that each peer generated independently, and the order in which Fabric returns ledger history. Both are easy to overlook when building on Fabric.
+
+\Cref{ch:results} evaluates the prototype against the requirements of \Cref{sec:pm}. It walks through the workflow from account and project creation to task assignment, status changes and file attachments, examines the permission rules and the verifiable audit trail, and reports the automated tests, a performance evaluation and a threat model that states what the design protects against and what it does not.
+
+\Cref{ch:conclusion} answers the research questions of \Cref{sec:rqs}, summarizes the results, discusses the limitations of the prototype and outlines future work. \Cref{app:reproduce} lists the steps needed to run the prototype and repeat the measurements.
+
+In summary, the thesis contributes (i) an adaptation of the Fabric-plus-IPFS pattern to software project management; (ii) a chaincode that enforces role-based permissions on every state-changing operation and stores accounts as ledger transactions; (iii) an audit verification procedure that checks every transaction against the ledger and builds a digest chain that can be recomputed offline; and (iv) an evaluation that includes a threat model and states the limits of the approach.

@@ -1,0 +1,85 @@
+\chapter{System Design and Implementation}
+\label{ch:method}
+
+This chapter describes the design and implementation of the decentralized project management system proposed in this thesis. We first present the overall architecture (\Cref{sec:architecture}), then describe each layer in turn: the chaincode that governs on-chain state (\Cref{sec:chaincode-design}), the integration with IPFS for off-chain file storage (\Cref{sec:ipfs-integration}), the backend API that bridges client applications and the Fabric network (\Cref{sec:backend}), and the frontend interface used to interact with the system (\Cref{sec:frontend}). The architectural choices follow directly from the requirements identified in \Cref{sec:pm} and the technologies introduced in \Cref{ch:background}, and mirror the on-chain/off-chain separation validated by \textcite{adel2023} (\Cref{sec:adel}), adapted to the software project management data model.
+
+% ─────────────────────────────────────────────
+\section{System Architecture}
+\label{sec:architecture}
+
+The system follows a layered architecture in which each layer has a single, well-defined responsibility:
+
+\begin{enumerate}
+    \item \textbf{Frontend} — a browser-based client (\Cref{sec:frontend}) through which users create and inspect projects and tasks.
+    \item \textbf{Backend API} — a stateless HTTP service (\Cref{sec:backend}) that translates REST requests into Fabric transactions and IPFS operations.
+    \item \textbf{Hyperledger Fabric network} — a permissioned blockchain network of two organizations, each running one peer, and one ordering service, connected by a single channel. This network hosts the chaincode (\Cref{sec:chaincode-design}) that defines and enforces all business logic.
+    \item \textbf{IPFS node} — a local content-addressed storage node (\Cref{sec:ipfs-integration}) used to store file attachments outside the ledger.
+\end{enumerate}
+
+The request flow for a typical write operation — for example, creating a task — proceeds as follows: the frontend sends an HTTP request to the backend; the backend constructs and submits a Fabric transaction using the Fabric Gateway client SDK; the transaction is endorsed by the peers of both organizations according to the channel's endorsement policy, ordered by the orderer, and committed to the ledger on both peers; the backend returns the resulting state to the frontend as a JSON response. Read operations follow the same path but use Fabric's \texttt{evaluateTransaction} call, which queries the local peer's world state directly without going through the ordering service, since no ledger update is required.
+
+File attachment follows a variant of this flow: the file is first uploaded directly from the frontend to the local IPFS node, which returns a CID; this CID, together with the file name, is then submitted to the chaincode as part of a normal transaction, so that only the CID — not the file content — is recorded on the ledger (\Cref{sec:ipfs-integration}).
+
+% ─────────────────────────────────────────────
+\section{Chaincode Design}
+\label{sec:chaincode-design}
+
+The chaincode is implemented in JavaScript using the Fabric Shim API and deployed to a channel shared by both organizations in the network. It defines two primary record types, distinguished by a \texttt{docType} field: \emph{projects} and \emph{tasks}. Each record is stored under its own key in Fabric's world state, and every write to a key is simultaneously appended to that key's immutable transaction history, which Fabric retains independently of the current state (\Cref{sec:fabric}).
+
+\subsection{Project Functions}
+
+A project record holds an identifier, name, description, owner, a list of member identifiers, and a status (\texttt{active} or \texttt{archived}). The chaincode exposes:
+
+\begin{itemize}
+    \item \texttt{createProject(projectId, name, description, ownerId)} — creates a new project with the owner as its sole initial member, rejecting the call if the identifier is already in use.
+    \item \texttt{getProject(projectId)} — returns the current state of a project.
+    \item \texttt{addProjectMember(projectId, memberId)} — appends a new member to an active project, rejecting duplicates.
+    \item \texttt{archiveProject(projectId)} — marks a project as archived; once archived, a project can no longer accept new tasks (enforced in \texttt{createTask}).
+    \item \texttt{getProjectHistory(projectId)} — returns the full sequence of past states of a project, retrieved via Fabric's \texttt{getHistoryForKey} API, in reverse chronological order.
+\end{itemize}
+
+\subsection{Task Functions}
+
+A task record holds an identifier, a reference to its parent project, a title, description, priority (\texttt{low}, \texttt{medium}, \texttt{high}), status, an optional assignee, and a list of file attachments. The chaincode exposes:
+
+\begin{itemize}
+    \item \texttt{createTask(taskId, projectId, title, description, priority)} — creates a task within an existing, active project.
+    \item \texttt{getTask(taskId)} — returns the current state of a task.
+    \item \texttt{assignTask(taskId, assigneeId)} — assigns a task to a project member; the chaincode verifies that the assignee is listed among the parent project's members before accepting the assignment, and rejects reassignment of a completed task.
+    \item \texttt{updateTaskStatus(taskId, newStatus)} — transitions a task between statuses. Transitions are restricted to a fixed set of valid moves (\texttt{todo}~$\rightarrow$~\texttt{in-progress}, \texttt{in-progress}~$\rightarrow$~\texttt{todo} or \texttt{done}), so that, for instance, a task cannot move directly from \texttt{todo} to \texttt{done} or be reopened once \texttt{done}.
+    \item \texttt{updateTaskMeta(taskId, field, value)} — allows editing of title, description, or priority on tasks that are not yet completed.
+    \item \texttt{attachFile(taskId, fileName, ipfsCid)} — records a reference to an off-chain file (\Cref{sec:ipfs-integration}).
+    \item \texttt{getTaskHistory(taskId)} — returns the full immutable history of a task, analogous to \texttt{getProjectHistory}.
+\end{itemize}
+
+\subsection{Determinism Constraints}
+
+An important implementation constraint of chaincode is that its execution must be deterministic: every endorsing peer executes the same transaction independently and must produce byte-identical results for the transaction to be validated (\Cref{sec:fabric}). An early version of the chaincode included a server-generated timestamp (\texttt{new Date().toISOString()}) in each record. Because peers execute the same chaincode invocation at slightly different wall-clock times, this produced different output on different peers, causing endorsement mismatches and transaction failures. The timestamp fields were removed from the chaincode logic; where timestamps are required by the system, they are obtained from Fabric's own block metadata rather than generated inside the chaincode, which sidesteps the determinism issue.
+
+% ─────────────────────────────────────────────
+\section{IPFS Integration}
+\label{sec:ipfs-integration}
+
+Following the pattern established by \textcite{adel2023} (\Cref{sec:adel}), file content is never stored on the Fabric ledger. Instead, files are uploaded directly from the client to a local IPFS node via its HTTP API, which returns a content identifier (CID) computed as a cryptographic hash of the file's content (\Cref{sec:ipfs}). Only this CID, together with the original file name, is submitted to the chaincode's \texttt{attachFile} function and recorded as part of the task's on-chain state.
+
+This design has two consequences that are relevant to the guarantees the system provides. First, because the CID is a function of file content, any subsequent modification of the file would produce a different CID; the CID recorded on the immutable ledger therefore constitutes a permanent, verifiable commitment to the exact content of the file at the time of attachment. Second, storing only a small fixed-size identifier on-chain, rather than the file itself, avoids the scalability and cost problems that would result from storing arbitrary binary data directly in blockchain state.
+
+Retrieval works in the reverse direction: given a task record fetched from the chain, its attachments' CIDs can be used to fetch the corresponding files from any IPFS node holding a copy, including the local node's HTTP gateway, without any additional interaction with the Fabric network.
+
+% ─────────────────────────────────────────────
+\section{Backend API}
+\label{sec:backend}
+
+The backend is a stateless HTTP service that exposes the chaincode's functionality as a conventional REST API, so that client applications do not need to interact with the Fabric Gateway SDK directly. Each incoming request establishes a gRPC connection to a peer using the Fabric Gateway client, authenticated with the invoking identity's X.509 certificate and private key, submits or evaluates the corresponding chaincode transaction, and returns the result as JSON.
+
+The API exposes endpoints mirroring the chaincode's function surface, for example \texttt{POST /projects} for \texttt{createProject}, \texttt{GET /tasks/\{id\}} for \texttt{getTask}, \texttt{PUT /tasks/\{id\}/status} for \texttt{updateTaskStatus}, and \texttt{GET /tasks/\{id\}/history} for \texttt{getTaskHistory}. Write operations map to Fabric's \texttt{submitTransaction} call, and read-only operations map to \texttt{evaluateTransaction}, preserving the distinction between operations that require network-wide ordering and consensus and those that can be answered from local peer state alone (\Cref{sec:fabric}).
+
+This layer deliberately contains no business logic of its own: all validation (e.g., rejecting an invalid status transition, or an assignment to a non-member) is enforced by the chaincode, not the backend, ensuring that the guarantees of the system do not depend on trusting the backend implementation — a client could, in principle, bypass the backend and submit transactions directly to the network with equivalent results.
+
+% ─────────────────────────────────────────────
+\section{Frontend Interface}
+\label{sec:frontend}
+
+The frontend is a single-page application that provides a graphical interface for the operations described above: creating and loading projects, creating tasks within a loaded project, transitioning a task's status, attaching files, and inspecting a task's complete on-chain history.
+
+The history view is the interface's central feature from the perspective of this thesis' contribution: rather than showing only the current state of a task, it renders every past state retrieved via \texttt{getTaskHistory}, in reverse chronological order, each annotated with its status and metadata at that point in time. This view makes directly visible, to a non-technical user, the property that motivated the system's design — that the record of how a task reached its current state cannot be altered after the fact, in contrast to the centralized platforms discussed in \Cref{sec:traditional-pm}.

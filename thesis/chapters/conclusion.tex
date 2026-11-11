@@ -1,0 +1,25 @@
+\chapter{Conclusion}
+\label{ch:conclusion}
+
+The starting point of this thesis was a simple problem: in today's project management tools, one provider controls the history of a project, and nobody else can check that it was not changed. I took the Fabric and IPFS approach that \textcite{adel2023} used for construction projects and built ChainBoard, a task board for software teams whose history is stored on a permissioned blockchain and can be verified by its users.
+
+\section{Answers to the Research Questions}
+\label{sec:rq-answers}
+
+\textbf{RQ1: Can the approach be adapted to software project management?} Yes. The architecture stayed the same; what changed was the data model (accounts, projects, tasks, comments and attachments, with keys designed for a database without search) and the interface, a board similar to Trello. All functional scenarios passed on the real network.
+
+\textbf{RQ2: Can the chaincode enforce the permissions?} Yes, with one condition. The chaincode checks the role of the acting person on every change, so forbidden actions are refused even when the interface is bypassed. The condition is that the chaincode learns who is acting from the backend, because Fabric identifies the organization, not the person.
+
+\textbf{RQ3: How can the history be made verifiable by a person?} By combining two checks: every record is looked up on the peer, and a digest chain over the history gives a fingerprint that a downloaded report can be checked against offline. In the tests, every manipulation of a report was detected.
+
+\textbf{RQ4: What does it cost?} A write takes about 2.1 seconds, almost all of it waiting for the orderer to create a block, while a read takes about 30 milliseconds. Throughput grew linearly from 0.48 to 3.73 transactions per second between 1 and 8 clients, because concurrent writes share a block. Of 8 simultaneous edits of the same task, only one succeeds. For a team tool this is acceptable, but noticeably slower than a normal database.
+
+\section{Limitations}
+\label{sec:limitations}
+
+The evaluation ran on one machine with two organizations, not on a distributed network, and I did not compare ChainBoard with a normal database. The most important technical limit is identity: the backend tells the chaincode who is acting, so a compromised backend could act as anyone. Reads are not restricted by role. Data on the ledger cannot be deleted, which conflicts with the GDPR right to erasure for names and comments. Files on IPFS are not pinned, so nothing guarantees they stay available. Finally, the data model supports a Kanban board but not Scrum: there are no sprints, estimates, sub-tasks or dependencies.
+
+\section{Future Work}
+\label{sec:future-work}
+
+The most useful next step is to give every person their own Fabric certificate, as \textcite{batista2021} does, so that the chaincode reads the caller from the transaction instead of trusting the backend, and to require both organizations to endorse critical actions. Personal data could be moved off the chain, with only hashes on the ledger, and reads could be checked by role. A test on a distributed network with more organizations, and a comparison with a normal database, would show the real cost of the approach. Adding sprints, a backlog, estimates and sub-tasks would bring ChainBoard closer to the tools teams use today, with the same verifiable history. And the same pattern could be tried in other fields where several parties need to trust a shared history.

@@ -1,0 +1,174 @@
+\chapter{System Design and Implementation}
+\label{ch:method}
+
+\section{Architecture}
+\label{sec:architecture}
+
+ChainBoard has four parts (\Cref{fig:architecture}):
+
+\begin{enumerate}
+    \item a \textbf{frontend} in the browser, built with React and Vite, where people sign in and work with projects and tasks;
+    \item a \textbf{backend} in Node.js and Express, which checks who is signed in and turns HTTP requests into Fabric transactions;
+    \item a \textbf{Hyperledger Fabric network} with two organizations, one peer each, one orderer and one channel, where the chaincode stores the data and checks every rule;
+    \item an \textbf{IPFS node} that stores attached files.
+\end{enumerate}
+
+\begin{figure}[tb]
+    \centering
+    \begin{tikzpicture}[node distance=14mm and 22mm]
+        \node[box] (fe) {Browser\\ React + Vite};
+        \node[box, right=of fe] (be) {Backend\\ Node.js + Express};
+        \node[box, right=of be] (fab) {Fabric network\\ chaincode,\\ 2 peers, 1 orderer};
+        \node[box, below=of fe] (ipfs) {IPFS node};
+        \node[box, below=of be] (store) {Off-chain store\\ sessions, tokens};
+        \draw[arr] (fe) -- node[lbl, above=2pt, fill=none] {REST} (be);
+        \draw[arr] (be) -- node[lbl, above=2pt, fill=none] {Gateway} (fab);
+        \draw[arr] (fe) -- node[lbl, left=2pt, fill=none] {file upload} (ipfs);
+        \draw[darr] (be) -- (store);
+    \end{tikzpicture}
+    \caption{Architecture of ChainBoard. The browser talks only to the backend, except when it uploads a file to IPFS. Only the backend holds the organization's Fabric identity.}
+    \label{fig:architecture}
+\end{figure}
+
+Everything with business meaning, including user accounts, is on the ledger. The backend keeps only short-lived data off the chain: login sessions, e-mail confirmation tokens and rate-limit counters.
+
+When a user creates a task, the frontend sends a request to the backend. The backend finds the signed-in user from the session cookie and submits a transaction through the Fabric Gateway, passing that user as the person who acts. Both peers endorse the transaction, the orderer puts it in a block, and both peers commit it. The backend then returns the new task as JSON. Reads use \texttt{evaluateTransaction}, which asks one peer and does not create a block. Attaching a file adds one step: the browser first uploads the file to IPFS, gets its CID, and then sends only the CID and the file name to the backend.
+
+\section{Chaincode}
+\label{sec:chaincode-design}
+
+The chaincode is written in JavaScript. It stores three kinds of records, users, projects and tasks, each under its own key. Every time a key is written, Fabric also adds the new value to that key's history.
+
+\paragraph*{Data model.} A project has a name, a description, an owner, a list of members with their role (\texttt{owner}, \texttt{admin} or \texttt{contributor}) and a status (\texttt{active} or \texttt{archived}). A task belongs to a project and has a title, a description, a priority, an optional due date, a status (\texttt{todo}, \texttt{in-progress} or \texttt{done}), an optional assignee, an archived flag, attachments and comments. Projects and tasks also store \texttt{updatedBy}, so every version in the history says who made it.
+
+\paragraph*{Keys.} Fabric's default database, LevelDB, can look up a key or scan a range of keys, but it cannot search by field. So the keys are the design: \texttt{project:<id>}, \texttt{task:<id>} and \texttt{user:<email>}, plus index keys such as \texttt{idx:username:<name>} that make usernames unique. The tasks of a project are found by scanning the \texttt{task:} keys. This way the board can always be rebuilt from the ledger.
+
+\paragraph*{Functions.} The project functions create a project, add a member, archive the project, list its tasks and return its history. The task functions create, assign, move, edit, comment, attach a file, archive and return the history. Only some status moves are allowed: \texttt{todo} to \texttt{in-progress}, \texttt{in-progress} back to \texttt{todo} or on to \texttt{done}, and a finished task can be reopened. A task cannot jump from \texttt{todo} to \texttt{done}, and every reopening stays visible. A ledger cannot delete anything, so archiving only hides a task or project from the board while its history remains.
+
+\subsection{Permissions}
+\label{sec:permissions}
+
+The chaincode, not the backend or the interface, decides who may do what. Every function that changes data receives the person who acts as its last argument and checks that person's role in the project record. \Cref{tab:permissions} shows the rules.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{p{4.2cm}p{2.1cm}p{2.1cm}p{3.3cm}}
+        \toprule
+        Action & Owner & Admin & Contributor \\
+        \midrule
+        Add a member & any role & contributors only & no \\
+        Archive the project & yes & no & no \\
+        Create a task, comment & yes & yes & yes \\
+        Assign a task & anyone & anyone & only to themselves, if the task is free \\
+        Change status, edit, attach a file & any task & any task & own or unassigned tasks \\
+        Archive a task & yes & yes & no \\
+        \bottomrule
+    \end{tabular}
+    \caption{Permissions checked by the chaincode. People outside the project can do none of these.}
+    \label{tab:permissions}
+\end{table}
+
+Listing~\ref{lst:permissions} shows the helper functions and the check in \texttt{addProjectMember}; the other functions start with a similar check.
+
+\begin{lstlisting}[caption={Role helpers and the check in \texttt{addProjectMember} (simplified).}, label={lst:permissions}, numbers=none, basicstyle=\ttfamily\footnotesize, language={}, autogobble]
+    function roleOf(project, id) {
+        const found = (project.members || []).find(m => m.id === id);
+        return found ? found.role : null;
+    }
+    function isManager(role) { return role === 'owner' || role === 'admin'; }
+    function canWorkOnTask(role, task, actorId) {
+        if (!role) return false;
+        return isManager(role) || !task.assigneeId || task.assigneeId === actorId;
+    }
+
+    // inside addProjectMember(projectId, memberId, role, actorId)
+    const actorRole = roleOf(project, actorId);
+    if (!isManager(actorRole))
+        return shim.error('Permission denied: only project owners and admins can add members');
+    if (actorRole === 'admin' && role !== 'contributor')
+        return shim.error('Permission denied: admins can only add contributors');
+\end{lstlisting}
+
+The backend turns ``Permission denied'' into HTTP 403. The interface uses the same rules to grey out buttons and explain why, but that is only for convenience: if someone calls the API directly, the ledger still refuses.
+
+There is one important limit. The Fabric Gateway identifies the organization, not the person, so every transaction from the backend carries the same identity. The chaincode can check the rules, but it has to believe the backend about who is acting. The backend always takes this from the login session and never from the request, but a compromised backend could claim to be anyone. Giving each person their own Fabric certificate would remove this limit.
+
+\subsection{Two Problems Found During Development}
+\label{sec:determinism}
+
+\paragraph*{Timestamps.} All endorsing peers must produce exactly the same result. My first version wrote \texttt{new Date().toISOString()} into each record. The peers ran the code at slightly different times, so the results differed and every transaction failed. I removed these fields. Times now come from Fabric itself: the transaction timestamp, which is the same on every peer, and the commit time in the history. For the same reason the chaincode never uses random numbers or computes hashes; the backend hashes passwords and the chaincode only stores the result.
+
+\paragraph*{Order of the history.}
+\label{sec:history-order}
+Fabric's \texttt{getHistoryForKey} returns the versions of a key newest first, but record numbers, the description of what changed and the digest chain need them oldest first. The history functions therefore sort the entries by commit time and add the transaction id and timestamp to each one. In my test setup the history came back in the other order and with differently named fields, which hid this bug until I ran the system on the real network.
+
+\section{Accounts}
+\label{sec:authentication}
+
+User accounts are also on the ledger. An account stores the name, e-mail, username, phone number, the password \emph{hash}, the linked Google account if any, and the person's projects. Creating an account, changing the password, linking Google and confirming the e-mail are all transactions, so each person can see a history of their own account that cannot be changed.
+
+Passwords are hashed by the backend with scrypt~\cite{percival2009scrypt}, because a salted hash is random and would break the endorsement. Sessions are HttpOnly cookies with a random token, and the backend stores only the token's hash. People can sign in with e-mail, username or Google. The backend also checks the origin of every request that changes data, limits the rate of sign-in attempts, and takes the same time to answer whether an account exists or not.
+
+\section{IPFS Integration}
+\label{sec:ipfs-integration}
+
+As in the system of \textcite{adel2023}, files are never stored on the ledger. The browser uploads a file to the local IPFS node, which returns its CID, and the chaincode function \texttt{attachFile} stores only the CID and the file name in the task. Since the CID is computed from the content, it permanently records exactly which file was attached, and anyone can check a copy against it. The file can later be fetched from any IPFS node that has it. IPFS does not guarantee that someone keeps the file, though, and this prototype does not pin files.
+
+\section{Backend}
+\label{sec:backend}
+
+The backend offers the chaincode functions as a REST API, so the browser does not need the Fabric SDK. For each request it connects to a peer with the organization's certificate, calls the chaincode and returns JSON. All ledger calls go through one small module, which is also what lets the tests replace Fabric with an in-memory copy. The endpoints match the chaincode functions one to one (\Cref{tab:api} in the appendix).
+
+The backend has no business rules of its own. Its job is identity: it checks the session and passes the signed-in person to the chaincode, ignoring any user named in the request. It also translates errors into HTTP codes: 403 for a refused permission, 404 for a missing record, 409 when two edits conflict, and 400 for invalid input.
+
+\section{Audit Verification}
+\label{sec:audit-verification}
+
+The ledger keeps every version of a task, but a user who sees that history on a web page still has to trust the page. So every task and project has a ``Verify audit trail'' button, which does two things.
+
+\paragraph*{Ledger check.} For each record, the backend asks the peer (system chaincode \texttt{qscc}, function \texttt{GetTransactionByID}) whether the transaction that wrote it is in a committed block. If the peer does not know it, the record is reported as missing. If the peer cannot be reached, it is reported as not checked, so a network problem is never shown as tampering.
+
+\paragraph*{Digest chain.} The backend also computes a fingerprint of the history. Let $v_i$ be the $i$-th record (oldest first), $t_i$ its transaction id, and $\mathrm{canon}$ a JSON serialization with the keys sorted. Then
+\begin{equation}
+    d_0 = 0^{64}, \qquad
+    d_i = \mathrm{SHA256}\bigl(d_{i-1} \,\|\, t_i \,\|\, \mathrm{canon}(v_i)\bigr).
+\end{equation}
+Each digest depends on the one before, so the last one, the \emph{head digest}, changes if any record is changed, removed, added or moved (\Cref{fig:digest-chain}).
+
+\begin{figure}[tb]
+    \centering
+    \begin{tikzpicture}[node distance=9mm]
+        \node[chain] (d0) {$d_0 = 0^{64}$};
+        \node[chain, right=of d0] (d1) {$d_1$};
+        \node[chain, right=of d1] (d2) {$d_2$};
+        \node[right=5mm of d2] (dots) {$\cdots$};
+        \node[chain, right=5mm of dots] (dn) {$d_n$\\[-1pt]{\scriptsize head digest}};
+        \node[box, below=8mm of d1] (r1) {$t_1,\ \mathrm{canon}(v_1)$};
+        \node[box, below=8mm of d2] (r2) {$t_2,\ \mathrm{canon}(v_2)$};
+        \node[box, below=8mm of dn] (rn) {$t_n,\ \mathrm{canon}(v_n)$};
+        \draw[arr] (d0) -- (d1);
+        \draw[arr] (d1) -- (d2);
+        \draw[arr] (d2) -- (dots);
+        \draw[arr] (dots) -- (dn);
+        \draw[darr] (r1) -- (d1);
+        \draw[darr] (r2) -- (d2);
+        \draw[darr] (rn) -- (dn);
+    \end{tikzpicture}
+    \caption{The digest chain over the history of one task.}
+    \label{fig:digest-chain}
+\end{figure}
+
+\paragraph*{Offline check.} The user can download the whole report as a JSON file. A small script recomputes every digest and says which record, if any, does not match, without the application or the network. This does not replace Fabric's own chain of blocks; it gives a person a portable fingerprint of one history.
+
+\section{Frontend}
+\label{sec:frontend}
+
+After signing in, a person sees a dashboard with their projects and their role in each (\Cref{fig:ui-dashboard}). The board shows the tasks of a project, read from the ledger, in three columns, and can be filtered by text, assignee, priority and due date (\Cref{fig:ui-board}). The task page shows details, files, comments and the activity list (\Cref{fig:ui-task}), and the ``Verify audit trail'' button shows the result of the check (\Cref{fig:ui-verify}).
+
+\screenshot{images/ui-dashboard.png}{The dashboard with the user's projects and roles.}{fig:ui-dashboard}
+\screenshot{images/ui-board.png}{The task board, read from the ledger.}{fig:ui-board}
+\screenshot{images/ui-task.png}{The task page with the activity list.}{fig:ui-task}
+\screenshot{images/ui-verify.png}{Result of ``Verify audit trail''.}{fig:ui-verify}
+
+Three choices matter. The interface follows the permission rules and explains why an action is not available. The activity list shows for each change what changed, who changed it and when, so the main guarantee of the system is visible to non-technical users. And because a write takes a few seconds, the interface moves a card immediately and confirms in the background, locking the buttons meanwhile so that nothing is sent twice.

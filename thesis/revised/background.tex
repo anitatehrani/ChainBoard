@@ -1,0 +1,96 @@
+\chapter{Background}
+\label{ch:background}
+
+This chapter introduces the concepts needed to follow the design and implementation of the system. It starts with project management and its phases, then looks at the existing centralized platforms, their limitations and the agile methods they support. It then introduces blockchain technology, Hyperledger Fabric in particular, and IPFS, on which ChainBoard is built.
+
+% ─────────────────────────────────────────────
+\section{Project Management}
+\label{sec:pm}
+
+Project management is the organization and direction of tasks, people and resources toward a defined goal, within limits of time, budget and quality~\cite{pmbok}. In software engineering it covers the whole life of a product, from planning to delivery and archiving.
+
+The project lifecycle is usually divided into five sequential phases~\cite{pmbok}, that can be summarized as follows:
+
+\begin{enumerate}
+    \item \textbf{Initiation:} defining the scope, objectives and stakeholders of the project.
+    \item \textbf{Planning:} breaking the work down into tasks, assigning responsibilities, estimating effort, and setting timelines and dependencies.
+    \item \textbf{Execution:} carrying out the planned work, coordinating team members and managing resources.
+    \item \textbf{Monitoring and Controlling:} tracking progress against the plan, spotting deviations and adjusting.
+    \item \textbf{Closing:} delivering the final product, archiving the artifacts of the project and recording lessons learned.
+\end{enumerate}
+
+A project management system therefore has to support task creation and assignment, status tracking, role-based access control, file attachments, team communication, milestone tracking and an audit history.
+
+% ─────────────────────────────────────────────
+\section{Traditional Project Management Platforms}
+\label{sec:traditional-pm}
+
+Many platforms are available for software project management. They organize work in different ways, but they are all centralized: a single provider stores and controls all the data.
+
+One popular platform is Trello~\cite{trello}, which uses boards and cards, an idea taken from Kanban~\cite{anderson2010kanban}: a project is a board, its phases are lists and each work item is a card. Trello suits simple workflows but offers little support for complex dependencies or audit trails. Jira~\cite{jira}, also by Atlassian, is the most widely used tool in professional software development; it supports backlogs, sprints, epics and detailed reports, and its flexibility makes it powerful but complex to configure. Asana~\cite{asana} focuses on coordination between teams that run many projects at the same time, with task dependencies, timelines and views across projects. GitHub Projects~\cite{github} and GitLab~\cite{gitlab} link project management to version control, so that issues and milestones refer to commits, which makes them a natural choice for software teams.
+
+All of these platforms rely on a trusted central authority, since the provider manages all project data, task history and access decisions. This creates three kinds of risk. The first concerns auditability: audit logs exist, but the platform controls them and could in principle alter them, so nobody else can check independently who changed what and when. The second concerns data sovereignty, because organizations do not control where their data is stored or how the provider accesses it. The third is the single point of failure, since an outage or the discontinuation of the platform affects every team that depends on it. These limitations motivate the decentralized approach of this thesis.
+
+% ─────────────────────────────────────────────
+\section{Agile Methods, Scrum and Kanban}
+\label{sec:agile}
+
+Most software teams today do not follow the sequential lifecycle described above literally. They work iteratively, following agile methods. The Agile Manifesto~\cite{agilemanifesto} values working software, collaboration with the customer and responding to change over comprehensive documentation and rigid plans, and the tools described above are largely built around this way of working. Two approaches are especially relevant here.
+
+\paragraph*{Scrum.} Scrum~\cite{scrumguide2020} organizes work in \emph{Sprints}, iterations of at most one month at the end of which the team delivers a usable increment of the product. A Scrum Team has three accountabilities: the \emph{Product Owner}, who orders the \emph{Product Backlog} (the list of everything that might be done for the product); the \emph{Developers}, who build the increment; and the \emph{Scrum Master}, who helps the team follow the framework. The framework defines three artifacts, each with a commitment: the Product Backlog (the product goal), the \emph{Sprint Backlog}, made of the items chosen for the Sprint and a plan (the Sprint goal), and the \emph{Increment}, which must meet the \emph{Definition of Done} of the team. It also defines five events: the Sprint itself, \emph{Sprint Planning}, the \emph{Daily Scrum}, the \emph{Sprint Review}, in which the results are inspected with stakeholders, and the \emph{Sprint Retrospective}, in which the team inspects its own way of working. Project management tools usually also support practices that are common but not part of the framework, such as user stories, estimation in story points and burndown charts.
+
+\paragraph*{Kanban.} Kanban~\cite{anderson2010kanban} prescribes no iterations or roles. Its core practices are to show the workflow on a board whose columns are the stages of the work, to limit the work in progress in each stage, and to manage and improve the flow of items across the board. Many teams combine the two approaches (``Scrumban'').
+
+For this thesis, the important point is that both approaches need a shared and trustworthy view of the state of the work: which items exist, who is working on them and which stage they are in.
+
+% ─────────────────────────────────────────────
+\section{Blockchain Technology}
+\label{sec:blockchain}
+
+A blockchain is a distributed ledger: a data structure that records a sequence of transactions across a network of nodes, with each transaction cryptographically linked to the previous one~\cite{nakamoto2008bitcoin}. The linkage makes the history tamper-evident, because changing a past record would require recomputing all later blocks and getting the majority of the network to accept them.
+
+Blockchains fall into two broad categories, depending on who may take part. Public, or permissionless, blockchains such as Bitcoin~\cite{nakamoto2008bitcoin} and Ethereum~\cite{ethereum} let anyone join and submit transactions. They reach consensus among unknown participants, through Proof of Work, which is computationally expensive, or through Proof of Stake, which replaces computation with economic stakes but still requires a native cryptocurrency and transaction fees. Private, or permissioned, blockchains admit only a known set of authenticated nodes and can therefore use simpler consensus protocols, which makes them suitable for enterprise applications where participants are identified and trusted to some degree.
+
+A permissioned blockchain fits a software project management system shared by several parties: the participants (team members and organizations) are known, the required throughput is modest, and nobody needs to take part anonymously.
+
+A blockchain is not always the right tool. \textcite{wust2018need} propose a decision scheme that asks, among other things, whether state must be stored, whether there are several writers, whether they trust each other, and whether a trusted third party is available or acceptable. A project tracker shared by organizations that do not fully trust one another, and that needs a history no single operator can rewrite, comes out in favor of a permissioned blockchain. A tracker used by one team that trusts its own administrator does not, and for it a conventional database is simpler, faster and cheaper. This thesis is concerned with the first kind of setting.
+
+\subsection{Smart Contracts}
+\label{sec:smart-contracts}
+
+A smart contract is a program that runs on the blockchain and encodes the rules for changing the ledger state~\cite{szabo1997}. When a participant submits a transaction, the smart contract checks it against these rules and, if it is valid, updates the state. Because the network deploys and executes the code, its logic is visible to the participants and no single party can change it alone. In ChainBoard, smart contracts implement all the project and task operations.
+
+% ─────────────────────────────────────────────
+\section{Hyperledger Fabric}
+\label{sec:fabric}
+
+Hyperledger Fabric~\cite{fabric,androulaki2018} is an open-source permissioned blockchain framework hosted by the Linux Foundation. It is designed for enterprise settings where participants are identified, some data may need to stay private to a subset of them, and throughput matters.
+
+A Fabric network is formed by one or more organizations, each running one or more \emph{peer} nodes that keep a copy of the ledger. A separate \emph{ordering service}, made of one node or a cluster of nodes, puts transactions into blocks and distributes the blocks to the peers. Organizations that work together share a \emph{channel}, a private subnet with its own ledger, so that the data of different groups of participants stays apart. Every participant has an identity, an X.509 certificate issued by the Membership Service Provider of its organization, and only authorized identities can submit transactions or query the ledger.
+
+Smart contracts are called \emph{chaincode} in Fabric. Chaincode is written in general-purpose languages (Go, JavaScript or Java), deployed to the channel and executed by the peers when a transaction is submitted. Fabric keeps data in two forms: the \emph{world state} is a key-value store with the current value of each record, and the \emph{blockchain history} is the immutable sequence of all past transactions that produced it. Because the history cannot be modified, it serves as a permanent audit log.
+
+A transaction goes through three steps. First, the endorsing peers execute it and must all produce the same result. Then the ordering service puts it into a block. Finally, every peer validates the block and commits it. Validation uses multi-version concurrency control (MVCC): if two transactions in the same block read and write the same key, only the first is committed and the other is rejected with a read conflict, so a Fabric application should avoid keys that many users update at the same time.
+
+Fabric was preferred to alternatives such as Ethereum because its permissioned model, private channels and flexible chaincode suit a collaborative project management setting, where the participants are known, no cryptocurrency or transaction fees are needed, and some data may have to stay private between organizations.
+
+% ─────────────────────────────────────────────
+\section{Tamper-Evident Logs and Hash Chains}
+\label{sec:hash-chains}
+
+Making a history tamper-\emph{evident}, so that changes can be detected even if they cannot be prevented, is an old problem in computer security. \textcite{schneier1999secure} describe audit logs in which every entry is cryptographically bound to the ones before it, so that an attacker who later gains control of the machine cannot alter earlier entries without being detected. The basic building block is a \emph{hash chain}: each entry is hashed together with the digest of the previous entry, so that changing, removing, inserting or reordering an entry changes every digest after it. \textcite{crosby2009tamper} reduce the cost of checking such logs with tree-based structures, and Certificate Transparency~\cite{rfc6962} uses append-only, publicly auditable logs built on Merkle trees for the issuing of TLS certificates. All of these rely on the same property: a short value (the last digest, or the root of a tree) commits to the whole history, so anyone who has kept or published that value can later detect a change. A blockchain is a replicated log of this kind protected by consensus, since each block contains the hash of the previous one.
+
+% ─────────────────────────────────────────────
+\section{The InterPlanetary File System}
+\label{sec:ipfs}
+
+IPFS~\cite{benet2014ipfs} is a peer-to-peer distributed file system based on content addressing. Traditional systems locate a file by its URL, that is, by \emph{where} it is. IPFS identifies a file by its \emph{content}: the file is hashed, and the hash, called a Content Identifier (CID), is its address.
+
+Two properties of this design matter for the thesis:
+
+\begin{enumerate}
+    \item \textbf{Integrity:} the CID is derived from the content, so any change to the file produces a different CID. A stored CID therefore proves what the content of a file was at a given time.
+    \item \textbf{Decentralization:} files are spread across the IPFS network and can be retrieved from any node that has a copy, so there is no dependence on a central file server.
+\end{enumerate}
+
+In ChainBoard, project documents are uploaded to a local IPFS node, and the resulting CID is recorded on the Fabric ledger as part of a transaction, which ties the document to the blockchain history. Keeping metadata and the audit trail on-chain and file content off-chain is a common pattern in blockchain-based systems~\cite{adel2023}, and it avoids storing large binary data on the ledger, which would be inefficient.
