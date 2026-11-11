@@ -30,7 +30,8 @@ const WRITES = Number(process.env.WRITES) || 40;
 const READS = Number(process.env.READS) || 200;
 const CONTENDERS = Number(process.env.CONTENDERS) || 8;
 const LEVELS = (process.env.LEVELS || '1,2,4,8').split(',').map(Number).filter(n => n > 0);
-const PASSWORD = 'Bench!Mark#Run-2026';
+// must not contain the account's name ("Bench Runner"), see lib/passwords.js
+const PASSWORD = 'Ledger-Load#Test-2026';
 
 const run = Date.now().toString(36);
 let cookie = '';

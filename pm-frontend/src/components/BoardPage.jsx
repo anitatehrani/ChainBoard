@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   cardState, cardAriaLabel, filterTasks, groupByColumn, todayISO,
   UNASSIGNED, activeFilterCount, filterCounts, taskSearchActive, TASK_SEARCH_MIN_CHARS
@@ -24,6 +24,17 @@ function BoardPage({
   const [dragOverCol, setDragOverCol] = useState(null)
   const [draggingId, setDraggingId] = useState(null)
   const [moreOpen, setMoreOpen] = useState(false)
+  // The create-task card is hidden until the person presses "Add new task".
+  const [formOpen, setFormOpen] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  // App clears the title after a successful create: close the card then.
+  useEffect(() => {
+    if (submitted && !tForm.title) { setFormOpen(false); setMoreOpen(false); setSubmitted(false) }
+  }, [submitted, tForm.title])
+  function closeForm() {
+    setFormOpen(false); setMoreOpen(false); setSubmitted(false)
+    setTForm({ ...tForm, title: '', description: '', dueDate: '' })
+  }
   const createCheck = selectedProject ? canCreateTask(selectedProject, currentUser.email) : { allowed: false, reason: '' }
   const [query, setQuery] = useState('')
   const [filterAssignee, setFilterAssignee] = useState('')
@@ -77,75 +88,99 @@ function BoardPage({
 
   return (
     <>
+      {/* Create-task card. Redesigned after the first user test: the old single
+          title bar hid priority and due date behind "More options", and the
+          participant did not find them. Now every field is visible and labelled. */}
+      {formOpen && (
       <section className="card wide newtask" aria-label="Create a task">
-        <form onSubmit={createTask} className="newtask-form">
-          <div className="newtask-main">
-            <input className="newtask-title" placeholder="What needs to be done?" aria-label="Task title"
-              value={tForm.title} onChange={e => setTForm({ ...tForm, title: e.target.value })}
-              disabled={!createCheck.allowed || isArchived} required />
-            <button type="submit" className="btn btn-primary newtask-go"
-              disabled={isArchived || !createCheck.allowed || !tForm.title.trim()}
-              title={createCheck.reason}>
-              + Add task
-            </button>
+        <div className="newtask-head">
+          <div className="card-header">
+            <span className="card-badge project">New</span>
+            <h2>Add a task</h2>
           </div>
+          <button type="button" className="newtask-close" aria-label="Close" onClick={closeForm}>×</button>
+        </div>
+        <form onSubmit={e => { setSubmitted(true); createTask(e) }} className="newtask-form">
+          <label className="nt-field">
+            <span>Title</span>
+            <input className="newtask-title" placeholder="e.g. Print posters" autoFocus
+              value={tForm.title} onChange={e => { setSubmitted(false); setTForm({ ...tForm, title: e.target.value }) }}
+              disabled={!createCheck.allowed || isArchived} required />
+          </label>
 
           {(createCheck.allowed && !isArchived) && (
             <>
-              <button type="button" className="newtask-more" aria-expanded={moreOpen}
-                onClick={() => setMoreOpen(o => !o)}>
-                <span className={`newtask-caret ${moreOpen ? 'open' : ''}`} aria-hidden="true">▸</span>
-                {moreOpen ? 'Fewer options' : 'More options'}
-                {!moreOpen && (
-                  <span className="newtask-summary">
-                    {tForm.priority} priority{tForm.dueDate ? ` · due ${tForm.dueDate}` : ''}
-                  </span>
-                )}
-              </button>
-
-              {moreOpen && (
-                <div className="newtask-extra">
-                  <label className="nt-field nt-wide">
-                    <span>Description <i>(optional)</i></span>
-                    <textarea placeholder="Add details, links or acceptance criteria" value={tForm.description} rows={3}
-                      onChange={e => setTForm({ ...tForm, description: e.target.value })} />
-                  </label>
-                  <div className="nt-field">
-                    <span>Priority</span>
-                    <Select ariaLabel="Priority" value={tForm.priority}
-                      onChange={v => setTForm({ ...tForm, priority: v })}
-                      options={[
-                        { value: 'low', label: 'Low priority' },
-                        { value: 'medium', label: 'Medium priority' },
-                        { value: 'high', label: 'High priority' }
-                      ]} />
+              <div className="newtask-row">
+                <div className="nt-field">
+                  <span id="nt-priority-label">Priority</span>
+                  <div className="nt-seg" role="radiogroup" aria-labelledby="nt-priority-label">
+                    {[['low', 'Low'], ['medium', 'Medium'], ['high', 'High']].map(([value, label]) => (
+                      <button key={value} type="button" role="radio" aria-checked={tForm.priority === value}
+                        className={`nt-seg-btn p-${value} ${tForm.priority === value ? 'on' : ''}`}
+                        onClick={() => setTForm({ ...tForm, priority: value })}>
+                        <span className="nt-dot" aria-hidden="true" />{label}
+                      </button>
+                    ))}
                   </div>
-                  <div className="nt-field">
-                    <span>Due date <i>(optional)</i></span>
-                    <DatePicker ariaLabel="Due date" value={tForm.dueDate}
-                      onChange={v => setTForm({ ...tForm, dueDate: v })} />
-                  </div>
-                  <label className="nt-field">
-                    <span>Task ID <i>(optional)</i></span>
-                    <input placeholder="Generated automatically" value={tForm.taskId}
-                      onChange={e => setTForm({ ...tForm, taskId: e.target.value })} />
-                  </label>
                 </div>
+                <div className="nt-field">
+                  <span>Due date <i>(optional)</i></span>
+                  <DatePicker ariaLabel="Due date" value={tForm.dueDate}
+                    onChange={v => setTForm({ ...tForm, dueDate: v })} />
+                </div>
+              </div>
+
+              {moreOpen ? (
+                <label className="nt-field">
+                  <span>Description <i>(optional)</i></span>
+                  <textarea placeholder="Add details, links or acceptance criteria" value={tForm.description} rows={3}
+                    onChange={e => setTForm({ ...tForm, description: e.target.value })} autoFocus />
+                </label>
+              ) : (
+                <button type="button" className="newtask-more" onClick={() => setMoreOpen(true)}>
+                  + Add a description
+                </button>
               )}
             </>
           )}
+
+          <div className="newtask-actions">
+            <button type="submit" className="btn btn-primary newtask-go"
+              disabled={isArchived || !createCheck.allowed || !tForm.title.trim()}
+              title={createCheck.reason}>
+              Create task
+            </button>
+            <button type="button" className="btn btn-secondary newtask-cancel" onClick={closeForm}>Cancel</button>
+            {createCheck.allowed && !isArchived && !tForm.title.trim() && (
+              <span className="newtask-hint">Enter a title to create the task.</span>
+            )}
+          </div>
         </form>
-        {(isArchived || !createCheck.allowed) && (
-          <p className="context-line" role="status" style={{ margin: 'var(--s-2) 0 0' }}>
-            {isArchived ? 'This project is archived, so no new tasks can be added.' : createCheck.reason}
-          </p>
-        )}
       </section>
+      )}
 
       <section className="card wide">
-        <div className="card-header">
-          <span className="card-badge project">Board</span>
-          <h2>Task Board</h2>
+        <div className="board-head">
+          <div className="card-header">
+            <span className="card-badge project">Board</span>
+            <h2>Task Board</h2>
+          </div>
+          {!formOpen && (
+            <div className="board-head-action">
+              <button type="button" className="btn newtask-open"
+                disabled={isArchived || !createCheck.allowed}
+                title={isArchived ? 'This project is archived, so no new tasks can be added.' : createCheck.reason}
+                onClick={() => setFormOpen(true)}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10" /></svg>
+                Add new task
+              </button>
+              {(isArchived || !createCheck.allowed) && (
+                <span className="newtask-hint">
+                  {isArchived ? 'Archived project: no new tasks.' : createCheck.reason}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <p className="board-hint">Tasks are read from the ledger. Drag a card between columns to change its status; select a card to open it.</p>
 
