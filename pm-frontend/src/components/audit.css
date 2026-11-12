@@ -1,21 +1,42 @@
 /* Audit verification panel. Tokens and theme variables only. */
 
 .audit { margin: var(--s-3) 0 var(--s-5); }
-.audit-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.audit-actions .btn { min-height: var(--tap); }
+
+/* button and its one-line explanation side by side */
+.audit-intro { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
+.audit-check { min-height: var(--tap); padding: 0 var(--s-4); }
+.audit-help { margin: 0; font-size: var(--fs-sm); color: var(--text-dim); }
 
 .audit-result {
-  margin-top: var(--s-3); padding: var(--s-3) var(--s-4);
-  border: 1px solid var(--border); border-left: 4px solid var(--text-faint);
-  border-radius: var(--r-md); font-size: var(--fs-sm); line-height: var(--lh-body);
+  display: flex; gap: var(--s-3); align-items: flex-start;
+  margin-top: var(--s-3); padding: var(--s-4);
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--text-faint) 6%, var(--surface));
+  font-size: var(--fs-sm); line-height: var(--lh-body);
   overflow-wrap: anywhere;
 }
-.audit-result.good { border-left-color: var(--st-done); }
-.audit-result.bad { border-left-color: var(--st-overdue); }
-.audit-result.good strong { color: var(--success); }
-.audit-result.bad strong { color: var(--danger); }
+.audit-result p { margin: var(--s-1) 0 0; color: var(--text); }
+.audit-result strong { font-size: var(--fs-md, 1rem); }
+.audit-body { flex: 1; min-width: 0; }
+.audit-icon { flex: none; display: inline-flex; margin-top: 1px; color: var(--text-dim); }
+
+.audit-result.good { border-color: color-mix(in srgb, var(--success) 40%, var(--border)); background: color-mix(in srgb, var(--success) 7%, var(--surface)); }
+.audit-result.good .audit-icon, .audit-result.good strong { color: var(--success); }
+.audit-result.bad { border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); background: color-mix(in srgb, var(--danger) 7%, var(--surface)); }
+.audit-result.bad .audit-icon, .audit-result.bad strong { color: var(--danger); }
+.audit-result.neutral { border-color: color-mix(in srgb, var(--warning) 40%, var(--border)); background: color-mix(in srgb, var(--warning) 7%, var(--surface)); }
+.audit-result.neutral .audit-icon, .audit-result.neutral strong { color: var(--warning); }
+.audit-result.bad .btn { margin-top: var(--s-2); }
+
+.audit-fingerprint { display: flex; flex-direction: column; gap: 2px; margin-top: var(--s-3) !important; }
+.audit-fingerprint code { font-family: 'JetBrains Mono', monospace; font-size: var(--fs-xs); padding: 1px 6px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--text) 6%, transparent); }
+.audit-note { font-size: var(--fs-xs); color: var(--text-dim); }
+
+.audit-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); }
+.audit-actions .btn { min-height: 36px; }
 
 .audit-records { margin-top: var(--s-2); }
-.audit-records summary { cursor: pointer; min-height: var(--tap); display: flex; align-items: center; color: var(--accent-hover); }
+.audit-records summary { cursor: pointer; min-height: var(--tap); display: flex; align-items: center; color: var(--text-dim); font-size: var(--fs-xs); }
+.audit-records summary:hover { color: var(--text); }
 .audit-records summary:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-sm); }
-.audit-records ol { margin: var(--s-2) 0 0; padding-left: var(--s-5); font-family: 'JetBrains Mono', monospace; font-size: var(--fs-xs); color: var(--text-dim); }
+.audit-records ol { margin: 0; padding-left: var(--s-5); font-family: 'JetBrains Mono', monospace; font-size: var(--fs-xs); color: var(--text-dim); }

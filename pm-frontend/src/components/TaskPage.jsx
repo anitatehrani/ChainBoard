@@ -220,7 +220,7 @@ function TaskPage({
         <div className="proj-section-head">
           <div>
             <h3 className="proj-h3">Files <span className="members-count">{t.attachments ? t.attachments.length : 0}</span></h3>
-            <p className="role-summary">Stored on IPFS; the ledger keeps only each file’s content ID.</p>
+            <p className="role-summary">Each file gets a unique fingerprint, so it can never be secretly swapped.</p>
           </div>
         </div>
 
@@ -284,7 +284,7 @@ function TaskPage({
           <div className="proj-section-head">
             <div>
               <h3 className="proj-h3">Activity <span className="members-count">{history.length}</span></h3>
-              <p className="role-summary">Every change is an immutable on-chain record.</p>
+              <p className="role-summary one-line">Saved permanently: past changes can never be edited or deleted.</p>
             </div>
           </div>
           <AuditVerifier kind="task" id={t.taskId} key={t.taskId} />
@@ -295,7 +295,7 @@ function TaskPage({
                   <div className="timeline-dot" aria-hidden="true" style={{ background: statusMeta[e.value.status]?.color }} />
                   <div className="timeline-content">
                     <div className="timeline-row">
-                      <span className="mono tx-id">tx #{e.n}</span>
+                      <span className="tx-id">Change {e.n}</span>
                       {statusMeta[e.value.status] && (
                         <span className="pill sm" style={{ color: statusMeta[e.value.status].color, background: statusMeta[e.value.status].bg }}>
                           {statusMeta[e.value.status].label}
@@ -306,7 +306,7 @@ function TaskPage({
                     <div className="timeline-meta">
                       {e.value.updatedBy && <>by <b>{displayName(e.value.updatedBy)}</b> · </>}
                       {formatWhen(e.timestamp) && <>{formatWhen(e.timestamp)} · </>}
-                      assignee <b>{e.value.assigneeId ? displayName(e.value.assigneeId) : '—'}</b> · priority <b>{e.value.priority}</b>
+                      {e.value.assigneeId ? <>assigned to <b>{displayName(e.value.assigneeId)}</b></> : 'not assigned'} · <b>{e.value.priority}</b> priority
                     </div>
                   </div>
                 </li>
@@ -324,7 +324,7 @@ function TaskPage({
               <h3 className="proj-h3">Archive this task</h3>
               <p className="role-summary">
                 {mayArchive.allowed
-                  ? 'It leaves the active board. Its full history stays on the ledger.'
+                  ? 'It leaves the active board. Its full history is kept.'
                   : mayArchive.reason}
               </p>
             </div>

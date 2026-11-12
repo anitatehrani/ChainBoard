@@ -6,32 +6,39 @@ function short(hash) {
   return h.length > 16 ? `${h.slice(0, 8)}…${h.slice(-8)}` : h
 }
 
-// { tone: 'good' | 'bad' | 'neutral', title, detail }
+// Plain-language result for people who do not know what a ledger is.
+// { tone: 'good' | 'bad' | 'neutral', title, detail, fingerprint }
+// (Written after the first user test: the old wording, "records in committed
+// blocks", meant nothing to a non-technical participant.)
 export function summarizeReport(report) {
   if (!report || !Array.isArray(report.records)) {
-    return { tone: 'bad', title: 'No report', detail: 'The audit report could not be read.' }
+    return { tone: 'bad', title: 'The check could not be completed', detail: 'The result could not be read. Please try again.', fingerprint: '' }
   }
   const n = report.recordCount
-  const noun = `${n} record${n === 1 ? '' : 's'}`
+  const noun = `${n} change${n === 1 ? '' : 's'}`
+  const fingerprint = short(report.headDigest)
   if (report.anyMissing) {
     const missing = report.records.filter(r => r.onLedger === false).length
     return {
       tone: 'bad',
-      title: 'Problem found',
-      detail: `${missing} of ${noun} could not be found on the ledger by the peer. Do not rely on this history until it is investigated.`
+      title: 'Something does not match',
+      detail: `${missing} of ${noun} could not be found in the blockchain. This history may have been altered, so do not rely on it and tell the project owner.`,
+      fingerprint
     }
   }
   if (report.allOnLedger) {
     return {
       tone: 'good',
-      title: 'Verified',
-      detail: `All ${noun} are in committed blocks on the ledger. Fingerprint of the whole history: ${short(report.headDigest)}`
+      title: 'This history is genuine',
+      detail: `All ${noun} were found in the blockchain exactly as they are shown here. Nobody has edited, removed or added anything since they were saved.`,
+      fingerprint
     }
   }
   return {
     tone: 'neutral',
-    title: 'Partly checked',
-    detail: `${report.ledgerChecked} of ${noun} were checked against the ledger (the peer could not be asked for the rest). Fingerprint: ${short(report.headDigest)}`
+    title: 'Could not check everything',
+    detail: `${report.ledgerChecked} of ${noun} were confirmed. The blockchain could not be reached for the rest; please try again in a moment.`,
+    fingerprint
   }
 }
 
@@ -52,7 +59,7 @@ export function formatWhen(iso) {
 
 // One line per record for the on-screen list.
 export function recordLine(r) {
-  const state = r.onLedger === true ? 'on ledger' : r.onLedger === false ? 'NOT FOUND on ledger' : 'not checked'
+  const state = r.onLedger === true ? 'confirmed' : r.onLedger === false ? 'NOT FOUND in the blockchain' : 'not checked'
   const when = formatWhen(r.timestamp)
-  return `#${r.n} · ${when ? `${when} · ` : ''}tx ${String(r.txId).slice(0, 10)}… · ${state}`
+  return `Change ${r.n} · ${when ? `${when} · ` : ''}${state} · transaction ${String(r.txId).slice(0, 10)}…`
 }

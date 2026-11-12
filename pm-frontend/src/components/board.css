@@ -44,6 +44,17 @@
 .newtask-more:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-sm); }
 
 .board-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-4); }
+.board-head-buttons { display: flex; align-items: flex-start; gap: var(--s-2); flex-wrap: wrap; }
+.board-settings {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  min-height: 40px; padding: 0 var(--s-4); border-radius: var(--r-md);
+  font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+  background: var(--surface); color: var(--text-dim);
+  border: 1.5px solid var(--border); cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.board-settings:hover { color: var(--text); background: color-mix(in srgb, var(--text) 5%, var(--surface)); }
+.board-settings:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .board-head-action { display: flex; flex-direction: column; align-items: flex-end; gap: var(--s-1); }
 .newtask-open {
   display: inline-flex; align-items: center; gap: var(--s-2);

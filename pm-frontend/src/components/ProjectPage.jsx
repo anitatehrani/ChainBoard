@@ -199,7 +199,7 @@ function ProjectPage({
         <div className="proj-section-head">
           <div>
             <h3 className="proj-h3">History &amp; verification</h3>
-            <p className="role-summary">Every change to this project is a blockchain transaction.</p>
+            <p className="role-summary one-line">Saved permanently: past changes can never be edited or deleted.</p>
           </div>
           <button onClick={loadProjectHistory} className="btn btn-secondary sm" disabled={loadingProjHistory}>
             {loadingProjHistory ? '…' : (showProjectHistory ? 'Refresh history' : 'View history')}
@@ -216,7 +216,7 @@ function ProjectPage({
                   <div className="timeline-dot" aria-hidden="true" style={{ background: e.value.status === 'archived' ? 'var(--text-dim)' : 'var(--success)' }} />
                   <div className="timeline-content">
                     <div className="timeline-row">
-                      <span className="mono tx-id">tx #{e.n}</span>
+                      <span className="tx-id">Change {e.n}</span>
                       <span className="state-tag" data-state={e.value.status === 'archived' ? 'archived' : 'active'}>
                         {e.value.status}
                       </span>

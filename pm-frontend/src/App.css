@@ -154,15 +154,44 @@ button[data-loading='true']::after {
   border-radius: 50%; animation: btn-spin 0.7s linear infinite;
 }
 button[data-loading='true'] svg { opacity: 0; }
-.btn-success[data-loading='true']::after, .btn-secondary[data-loading='true']::after {
-  border-color: rgba(128, 128, 128, 0.35); border-top-color: var(--text);
+/* outline buttons: the spinner uses the text colour */
+.btn-primary[data-loading='true']::after, .btn-accent[data-loading='true']::after,
+.btn-success[data-loading='true']::after, .btn-secondary[data-loading='true']::after,
+.btn-danger[data-loading='true']::after {
+  border-color: rgba(128, 128, 128, 0.35); border-top-color: var(--accent);
 }
 @keyframes btn-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { button[data-loading='true']::after { animation-duration: 2s; } }
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
-.btn-success { background: var(--success); color: #06210f; }
-.btn-accent { background: linear-gradient(135deg, var(--accent), #a855f7); color: #fff; }
+
+/* One button style for the whole app (same as "Add new task"): white background,
+   coloured 1.5px outline and text, light tint on hover. */
+.btn-primary, .btn-accent, .btn-success, .btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--surface);
+  border: 1.5px solid var(--btn-c, var(--accent));
+  color: var(--btn-c, var(--accent));
+  transition: background 0.15s, transform 0.1s, border-color 0.15s, color 0.15s;
+}
+.btn-primary, .btn-accent { --btn-c: var(--accent); }
+.btn-success { --btn-c: var(--success); }
+.btn-secondary { --btn-c: var(--text-dim); border-color: var(--border); }
+.btn-primary:hover:not(:disabled), .btn-accent:hover:not(:disabled),
+.btn-success:hover:not(:disabled), .btn-secondary:hover:not(:disabled) {
+  opacity: 1;
+  background: color-mix(in srgb, var(--btn-c, var(--accent)) 10%, var(--surface));
+  transform: translateY(-1px);
+}
+.btn-secondary:hover:not(:disabled) { color: var(--text); }
+.btn-primary:active:not(:disabled), .btn-accent:active:not(:disabled),
+.btn-success:active:not(:disabled), .btn-secondary:active:not(:disabled) {
+  background: color-mix(in srgb, var(--btn-c, var(--accent)) 18%, var(--surface)); transform: none;
+}
+.btn-primary:focus-visible, .btn-accent:focus-visible, .btn-success:focus-visible, .btn-secondary:focus-visible {
+  outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--btn-c, var(--accent)) 30%, transparent);
+}
+.btn-primary:disabled, .btn-accent:disabled, .btn-success:disabled, .btn-secondary:disabled {
+  opacity: 1; color: var(--text-faint); border-color: var(--border); background: var(--surface);
+}
 
 .divider { height: 1px; background: var(--border); margin: 18px 0; }
 
@@ -313,8 +342,14 @@ button[data-loading='true'] svg { opacity: 0; }
 .dash-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 16px; }
 
 .btn.sm { padding: 6px 12px; font-size: 12px; }
-.btn-danger { background: rgba(239,68,68,0.12); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
-.btn-danger:disabled { opacity: 0.3; }
+.btn-danger {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--surface); color: var(--danger); border: 1.5px solid var(--danger);
+  transition: background 0.15s, transform 0.1s;
+}
+.btn-danger:hover:not(:disabled) { opacity: 1; background: color-mix(in srgb, var(--danger) 10%, var(--surface)); transform: translateY(-1px); }
+.btn-danger:active:not(:disabled) { background: color-mix(in srgb, var(--danger) 18%, var(--surface)); transform: none; }
+.btn-danger:disabled { opacity: 1; color: var(--text-faint); border-color: var(--border); }
 
 .members-block { margin-bottom: 16px; }
 .members-title {

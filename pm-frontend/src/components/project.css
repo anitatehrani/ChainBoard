@@ -60,6 +60,7 @@
 .proj-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; margin-bottom: var(--s-3); }
 .proj-h3 { margin: 0; font-size: var(--fs-lg); font-weight: var(--fw-semibold); display: flex; align-items: center; gap: var(--s-2); }
 .proj-section-head .role-summary { margin: var(--s-1) 0 0; max-width: 60ch; }
+.role-summary.one-line, .proj-section-head .role-summary.one-line { max-width: none; }
 .proj-section-head .btn { min-height: 40px; }
 
 .member-sub { font-size: var(--fs-xs); color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
