@@ -160,17 +160,11 @@ function BoardPage({
       )}
 
       <section className="card wide">
+        {/* Project name and the settings link now live in the project header
+            above (tabs "Board" / "Members and history"). */}
         <div className="board-head">
-          <div className="card-header">
-            <span className="card-badge project">Board</span>
-            <h2>{selectedProject.name || 'Task Board'}</h2>
-          </div>
+          <p className="board-hint">Drag a card between columns to change its status; select a card to open it.</p>
           <div className="board-head-buttons">
-          <button type="button" className="btn board-settings" onClick={() => goTo('project')}
-            title="Members, roles, history and archiving">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
-            Project settings
-          </button>
           {!formOpen && (
             <div className="board-head-action">
               <button type="button" className="btn newtask-open"
@@ -189,7 +183,6 @@ function BoardPage({
           )}
           </div>
         </div>
-        <p className="board-hint">Tasks are read from the ledger. Drag a card between columns to change its status; select a card to open it.</p>
 
         <div className="board-tools">
 
@@ -261,6 +254,7 @@ function BoardPage({
               <div
                 key={col}
                 className={`kanban-col ${dragOverCol === col ? 'drag-over' : ''}`}
+                style={{ '--col': statusMeta[col]?.color }}
                 onDragOver={e => { e.preventDefault(); setDragOverCol(col) }}
                 onDragLeave={() => setDragOverCol(prev => (prev === col ? null : prev))}
                 onDrop={e => handleDrop(e, col)}

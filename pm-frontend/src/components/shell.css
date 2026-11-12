@@ -1,0 +1,160 @@
+/* Workspace layout: sidebar, top bar, project header and task drawer.
+   Tokens and theme variables only. */
+
+/* ── frame ── */
+.app.shell {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  min-height: 100vh;
+}
+.shell-main { min-width: 0; display: flex; flex-direction: column; }
+/* light theme: calm, neutral canvas; colour is kept for meaning (status,
+   priority, actions) rather than decoration */
+:root[data-theme='light'] .shell-main { background: var(--bg); }
+:root[data-theme='light'] .shell-top { background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(8px); }
+:root[data-theme='light'] .sb { background: #fbfaf8; }
+/* board columns: very light wash of the status colour, so columns read at a glance */
+:root[data-theme='light'] .shell .kanban-col:not(.drag-over) {
+  background: color-mix(in srgb, var(--col, var(--accent)) 4%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--col, var(--accent)) 14%, var(--border));
+}
+:root[data-theme='light'] .shell .kanban-card { box-shadow: 0 1px 2px rgba(31, 35, 40, 0.06); }
+.shell-top {
+  display: flex; align-items: center; justify-content: flex-end; gap: var(--s-3);
+  min-height: 56px; padding: var(--s-2) var(--s-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky; top: 0; z-index: 20;
+}
+.shell-crumb { margin-right: auto; font-size: var(--fs-sm); color: var(--text-dim); display: flex; gap: var(--s-2); align-items: center; min-width: 0; }
+.shell-crumb b { color: var(--text); font-weight: var(--fw-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shell-content { width: 100%; max-width: 1180px; margin: 0 auto; padding: var(--s-5) var(--s-5) 80px; }
+
+.shell .toast-stack { top: 68px; }          /* below the top bar */
+.shell .board-head { align-items: center; margin-bottom: var(--s-3); }
+.shell .board-head .board-hint { margin: 0; }
+
+/* ── sidebar ── */
+.sb {
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column; gap: var(--s-2);
+  padding: var(--s-4) var(--s-3);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.sb-brand {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-2); margin-bottom: var(--s-3);
+  background: none; border: 0; cursor: pointer; text-align: left; color: var(--text);
+  border-radius: var(--r-md);
+}
+.sb-brand:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.sb-logo {
+  display: grid; place-items: center; width: 34px; height: 34px; flex: none;
+  border-radius: var(--r-md); color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.sb-brand-name { display: block; font-weight: var(--fw-bold); font-size: var(--fs-md); }
+.sb-brand-sub { display: block; font-size: var(--fs-xs); color: var(--text-faint); }
+
+.sb-nav, .sb-foot { display: flex; flex-direction: column; gap: 2px; }
+.sb-foot { margin-top: auto; padding-top: var(--s-3); border-top: 1px solid var(--border); }
+.sb-link, .sb-project {
+  display: flex; align-items: center; gap: var(--s-2); width: 100%;
+  min-height: 36px; padding: 0 var(--s-2);
+  background: none; border: 0; border-radius: var(--r-md);
+  color: var(--text-dim); font: inherit; font-size: var(--fs-sm); text-align: left; cursor: pointer;
+}
+.sb-link:hover, .sb-project:hover { background: var(--overlay); color: var(--text); }
+.sb-link.on, .sb-project.on {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text); font-weight: var(--fw-semibold);
+}
+.sb-link:focus-visible, .sb-project:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.sb-section { display: flex; align-items: center; justify-content: space-between; margin: var(--s-4) var(--s-2) var(--s-1); }
+.sb-label { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--text-faint); text-transform: uppercase; letter-spacing: .05em; }
+.sb-add {
+  display: grid; place-items: center; width: 24px; height: 24px;
+  background: none; border: 0; border-radius: var(--r-sm); color: var(--text-dim); cursor: pointer;
+}
+.sb-add:hover { background: var(--overlay); color: var(--text); }
+.sb-projects { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.sb-projects.archived .sb-project { opacity: .7; }
+.sb-project-mark {
+  display: grid; place-items: center; width: 22px; height: 22px; flex: none;
+  border-radius: var(--r-sm); font-size: 11px; font-weight: var(--fw-bold);
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim);
+}
+.sb-project.on .sb-project-mark { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sb-project-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-hint { font-size: var(--fs-xs); color: var(--text-faint); padding: var(--s-1) var(--s-2); }
+.sb-toggle {
+  align-self: flex-start; margin: var(--s-1) var(--s-2);
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--text-faint); font: inherit; font-size: var(--fs-xs);
+}
+.sb-toggle:hover { color: var(--text); }
+
+/* ── project header ── */
+.ph { margin-bottom: var(--s-4); }
+.ph-title { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+.ph-title h1 { margin: 0; font-size: 26px; font-weight: var(--fw-bold); letter-spacing: -0.02em; }
+.ph-badge { font-size: var(--fs-xs); color: var(--text-dim); border: 1px solid var(--border); border-radius: var(--r-pill); padding: 1px var(--s-2); }
+.ph-desc { margin: var(--s-1) 0 0; color: var(--text-dim); font-size: var(--fs-sm); max-width: 75ch; }
+.ph-tabs { display: flex; gap: var(--s-4); margin-top: var(--s-4); border-bottom: 1px solid var(--border); }
+.ph-tab {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  padding: var(--s-2) 0; margin-bottom: -1px;
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  color: var(--text-dim); font: inherit; font-size: var(--fs-md); font-weight: var(--fw-medium); cursor: pointer;
+}
+.ph-tab:hover { color: var(--text); }
+.ph-tab.on { color: var(--text); border-bottom-color: var(--accent); font-weight: var(--fw-semibold); }
+.ph-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-sm); }
+.ph-count { font-size: var(--fs-xs); color: var(--text-dim); background: var(--overlay); border-radius: var(--r-pill); padding: 0 var(--s-2); }
+
+/* ── task window (centered) ── */
+.tw-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: color-mix(in srgb, #0b0d14 45%, transparent);
+  backdrop-filter: blur(2px);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 5vh var(--s-4);
+  animation: tw-fade 160ms var(--ease);
+}
+.tw {
+  position: relative; width: min(880px, 100%); max-height: 90vh;
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.12);
+  outline: none; overflow: hidden;
+  animation: tw-pop 180ms var(--ease);
+}
+.tw-body { overflow-y: auto; min-height: 0; }
+.tw-close {
+  position: absolute; top: 14px; right: 14px; z-index: 3;
+  width: 34px; height: 34px; display: grid; place-items: center;
+  background: none; border: 0; border-radius: var(--r-md);
+  color: var(--text-dim); cursor: pointer;
+}
+.tw-close:hover { background: var(--overlay); color: var(--text); }
+.tw-close:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+@keyframes tw-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tw-pop { from { transform: translateY(8px) scale(.985); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tw, .tw-backdrop { animation: none; } }
+
+/* ── small screens: sidebar on top, drawer full width ── */
+@media (max-width: 860px) {
+  .app.shell { grid-template-columns: 1fr; }
+  .sb { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+  .sb-foot { margin-top: var(--s-2); }
+  .shell-content { padding: var(--s-4) var(--s-3) 64px; }
+  .tw-backdrop { padding: 0; }
+  .tw { max-height: 100vh; height: 100%; border-radius: 0; }
+}

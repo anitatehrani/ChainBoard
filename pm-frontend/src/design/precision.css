@@ -1,0 +1,330 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   "Precision" skin (developer-tool look, in the spirit of Linear)
+   Dark graphite, hairline borders, compact type, no gradients or glow.
+   The activity history is drawn as a chain of small blocks.
+   Only active while <html data-skin="precision"> is set (index.html).
+   ───────────────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+
+/* ── palette: dark (the main one) ── */
+:root[data-skin='precision'],
+:root[data-skin='precision'][data-theme='dark'] {
+  --bg: #0b0c0e;
+  --surface: #111215;
+  --surface-2: #15161a;
+  --border: #23252b;
+  --text: #e8e9ec;
+  --text-dim: #8b909a;
+  --text-faint: #5b606a;
+  --accent: #4f9cf9;
+  --accent-hover: #74b1fb;
+  --success: #3fbf7f;
+  --warning: #e3a33b;
+  --danger: #ef5b5b;
+  --info: #4f9cf9;
+  --overlay: rgba(255, 255, 255, 0.04);
+  --toast-success-bg: #15161a;
+  --toast-error-bg: #15161a;
+  --hair: rgba(255, 255, 255, 0.06);
+  --lift: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --focus-ring: 0 0 0 1px var(--bg), 0 0 0 3px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* ── palette: light ── */
+:root[data-skin='precision'][data-theme='light'] {
+  --bg: #f7f7f8;
+  --surface: #ffffff;
+  --surface-2: #fafafb;
+  --border: #e4e5e8;
+  --text: #16171b;
+  --text-dim: #60646d;
+  --text-faint: #9a9ea6;
+  --accent: #1f6fe0;
+  --accent-hover: #1858b3;
+  --success: #17864f;
+  --warning: #a8670a;
+  --danger: #d23b3b;
+  --info: #1f6fe0;
+  --overlay: rgba(0, 0, 0, 0.035);
+  --toast-success-bg: #ffffff;
+  --toast-error-bg: #ffffff;
+  --hair: rgba(0, 0, 0, 0.05);
+  --lift: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* ── type: smaller, tighter, precise ── */
+html[data-skin='precision'] body {
+  font-family: 'Geist', -apple-system, sans-serif;
+  font-size: 14px;
+  letter-spacing: -0.005em;
+}
+html[data-skin='precision'] code,
+html[data-skin='precision'] .mono { font-family: 'Geist Mono', monospace; }
+html[data-skin='precision'] h1, html[data-skin='precision'] h2, html[data-skin='precision'] h3,
+html[data-skin='precision'] .card-header h2, html[data-skin='precision'] .proj-h3,
+html[data-skin='precision'] .dash-hello, html[data-skin='precision'] .dash-title {
+  font-family: 'Geist', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+html[data-skin='precision'] .dash-hello { font-size: 28px; }
+html[data-skin='precision'] .card-header h2 { font-size: 18px; }
+
+html[data-skin='precision'] .card-badge,
+html[data-skin='precision'] .card-badge.project,
+html[data-skin='precision'] .card-badge.task,
+html[data-skin='precision'] .card-badge.audit {
+  font-family: 'Geist Mono', monospace;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  background: var(--overlay);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+/* ── brand ── */
+html[data-skin='precision'] .header-icon {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--lift);
+}
+
+/* ── surfaces: hairlines, no shadows ── */
+html[data-skin='precision'] .card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--lift);
+  padding: 20px;
+}
+html[data-skin='precision'] input,
+html[data-skin='precision'] textarea,
+html[data-skin='precision'] select {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13.5px;
+}
+html[data-skin='precision'] input:focus,
+html[data-skin='precision'] textarea:focus {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* ── navigation: segmented, quiet ── */
+html[data-skin='precision'] .nav-tabs {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--lift);
+  padding: 3px;
+}
+html[data-skin='precision'] .nav.nav-bar .nav-tab {
+  min-height: 32px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+html[data-skin='precision'] .nav.nav-bar .nav-tab.active {
+  background: var(--overlay);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+/* ── buttons: compact; main action is a solid accent ── */
+html[data-skin='precision'] .btn,
+html[data-skin='precision'] .newtask-open,
+html[data-skin='precision'] .board-settings {
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 13px;
+  min-height: 32px;
+}
+html[data-skin='precision'] .btn-primary,
+html[data-skin='precision'] .btn-accent,
+html[data-skin='precision'] .newtask-open {
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 80%, #000);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+html[data-skin='precision'] .btn-primary:hover:not(:disabled),
+html[data-skin='precision'] .btn-accent:hover:not(:disabled),
+html[data-skin='precision'] .newtask-open:hover:not(:disabled) {
+  background: var(--accent-hover);
+  color: #fff;
+  transform: none;
+}
+html[data-skin='precision'] .btn-secondary,
+html[data-skin='precision'] .board-settings,
+html[data-skin='precision'] .btn-success {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: var(--lift);
+}
+html[data-skin='precision'] .btn-secondary:hover:not(:disabled),
+html[data-skin='precision'] .board-settings:hover:not(:disabled),
+html[data-skin='precision'] .btn-success:hover:not(:disabled) {
+  background: var(--overlay);
+  border-color: color-mix(in srgb, var(--text) 18%, var(--border));
+  color: var(--text);
+  transform: none;
+}
+html[data-skin='precision'] .btn-danger {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--border));
+  color: var(--danger);
+}
+html[data-skin='precision'] .btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  transform: none;
+}
+html[data-skin='precision'] .btn:disabled,
+html[data-skin='precision'] .newtask-open:disabled {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text-faint);
+  box-shadow: none;
+}
+
+html[data-skin='precision'] .nt-seg { border-radius: 6px; }
+html[data-skin='precision'] .nt-seg-btn { min-height: 32px; font-size: 13px; }
+html[data-skin='precision'] .nt-seg-btn.on { background: var(--overlay); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+
+html[data-skin='precision'] .bf-chip { min-height: 28px; font-size: 12.5px; border-radius: 6px; }
+html[data-skin='precision'] .bf-chip.on {
+  color: var(--text);
+  background: var(--overlay);
+  border-color: color-mix(in srgb, var(--text) 25%, var(--border));
+}
+
+/* ── tags ── */
+html[data-skin='precision'] .pill { border-radius: 4px; font-weight: 500; }
+html[data-skin='precision'] .pill.assignee { background: var(--overlay); color: var(--text-dim); }
+
+/* ── board: columns are just lanes, cards carry the weight ── */
+html[data-skin='precision'] .kanban-col {
+  background: transparent;
+  border: 1px dashed transparent;
+  border-radius: 8px;
+  padding: 4px;
+}
+html[data-skin='precision'] .kanban-col.drag-over { border-color: var(--accent); outline: none; background: var(--overlay); }
+html[data-skin='precision'] .kanban-col-header {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text) !important;
+  padding: 4px 6px;
+}
+html[data-skin='precision'] .kanban > :nth-child(1) .kanban-col-dot { background: var(--text-faint); }
+html[data-skin='precision'] .kanban > :nth-child(2) .kanban-col-dot { background: var(--warning); }
+html[data-skin='precision'] .kanban > :nth-child(3) .kanban-col-dot { background: var(--success); }
+html[data-skin='precision'] .kanban-count {
+  font-family: 'Geist Mono', monospace;
+  background: transparent;
+  color: var(--text-faint);
+}
+html[data-skin='precision'] .kanban-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--lift);
+  padding: 10px 12px;
+}
+/* status as a small coloured mark instead of a thick edge */
+html[data-skin='precision'] .kanban-card::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--card-edge, var(--st-todo));
+}
+html[data-skin='precision'] .kanban-card:hover {
+  border-color: color-mix(in srgb, var(--text) 22%, var(--border));
+  border-left-color: color-mix(in srgb, var(--text) 22%, var(--border));
+  box-shadow: var(--lift);
+}
+html[data-skin='precision'] .kanban-card-title { font-size: 13.5px; font-weight: 500; padding-right: 16px; }
+
+/* ── activity history: a chain of blocks ── */
+html[data-skin='precision'] .timeline-list { position: relative; }
+html[data-skin='precision'] .timeline-list::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 14px;
+  bottom: 14px;
+  width: 1px;
+  background: var(--border);
+}
+html[data-skin='precision'] .timeline-dot {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  margin-top: 16px;
+  border-radius: 2px;              /* square: one block in the chain */
+  border: 1px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--border);
+  flex: none;
+}
+html[data-skin='precision'] .timeline-content {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+html[data-skin='precision'] .timeline-item:hover .timeline-content { background: var(--overlay); border-color: var(--border); }
+html[data-skin='precision'] .tx-id {
+  font-family: 'Geist Mono', monospace;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+/* ── audit check: a compact status panel ── */
+html[data-skin='precision'] .audit-result {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--lift);
+  position: relative;
+  overflow: hidden;
+}
+html[data-skin='precision'] .audit-result::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--text-faint);
+}
+html[data-skin='precision'] .audit-result.good::before { background: var(--success); }
+html[data-skin='precision'] .audit-result.bad::before { background: var(--danger); }
+html[data-skin='precision'] .audit-result.neutral::before { background: var(--warning); }
+html[data-skin='precision'] .audit-result strong { font-size: 15px; font-weight: 600; }
+html[data-skin='precision'] .audit-fingerprint code {
+  font-family: 'Geist Mono', monospace;
+  background: var(--overlay);
+  border: 1px solid var(--border);
+}
+
+/* ── toasts ── */
+html[data-skin='precision'] .toast {
+  border-radius: 8px;
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  font-size: 13px;
+}
+html[data-skin='precision'] .toast.success .toast-icon { color: var(--success); }
+html[data-skin='precision'] .toast.error .toast-icon { color: var(--danger); }

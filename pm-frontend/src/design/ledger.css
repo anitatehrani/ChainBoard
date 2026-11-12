@@ -1,0 +1,259 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   "Ledger" skin
+   The app is styled as an account book: warm paper, ink-black text, a serif
+   for headings, thin ruled lines instead of soft shadows, and the audit check
+   shown as a stamp. It is only active while <html data-skin="ledger"> is set
+   (index.html); remove that attribute to go back to the previous look.
+   ───────────────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* ── palette: paper (light) ── */
+:root[data-skin='ledger'],
+:root[data-skin='ledger'][data-theme='light'] {
+  --bg: #efe9dc;
+  --surface: #fbf8f1;
+  --surface-2: #f4efe3;
+  --border: #d8ccb4;
+  --text: #1d1a15;
+  --text-dim: #5b5345;
+  --text-faint: #8e8473;
+  --accent: #1f5c47;          /* bookkeeper's green ink */
+  --accent-hover: #174636;
+  --success: #2d6a3a;
+  --warning: #9a5b12;
+  --danger: #b03a2b;          /* vermilion, like a red ledger line */
+  --info: #2c4f80;
+  --overlay: rgba(60, 45, 20, 0.06);
+  --toast-success-bg: #fbf8f1;
+  --toast-error-bg: #fbf8f1;
+  --rule: #b03a2b55;          /* the red margin line of a ledger page */
+
+  --r-sm: 2px;
+  --r-md: 3px;
+  --r-lg: 4px;
+  --r-pill: 3px;
+}
+
+/* ── palette: ink (dark) ── */
+:root[data-skin='ledger'][data-theme='dark'] {
+  --bg: #15130f;
+  --surface: #1d1a15;
+  --surface-2: #24211a;
+  --border: #3b352a;
+  --text: #ede5d4;
+  --text-dim: #b6ab96;
+  --text-faint: #7f7564;
+  --accent: #79b8a0;
+  --accent-hover: #96cbb6;
+  --success: #86b874;
+  --warning: #d9a457;
+  --danger: #e27463;
+  --info: #8fabd8;
+  --overlay: rgba(255, 240, 210, 0.05);
+  --toast-success-bg: #1d1a15;
+  --toast-error-bg: #1d1a15;
+  --rule: #e2746355;
+}
+
+/* ── type ── */
+html[data-skin='ledger'] body {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  background-color: var(--bg);
+}
+html[data-skin='ledger'] code,
+html[data-skin='ledger'] .mono { font-family: 'IBM Plex Mono', monospace; }
+
+html[data-skin='ledger'] h1,
+html[data-skin='ledger'] h2,
+html[data-skin='ledger'] h3,
+html[data-skin='ledger'] .header h1,
+html[data-skin='ledger'] .card-header h2,
+html[data-skin='ledger'] .proj-h3,
+html[data-skin='ledger'] .dash-hello,
+html[data-skin='ledger'] .dash-title,
+html[data-skin='ledger'] .dash-resume-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variation-settings: 'opsz' 72;
+}
+html[data-skin='ledger'] .dash-hello { font-size: 34px; }
+html[data-skin='ledger'] .card-header h2 { font-size: 22px; }
+html[data-skin='ledger'] .proj-h3 { font-size: 19px; }
+
+/* small labels in an engraved, typewriter style */
+html[data-skin='ledger'] .card-badge,
+html[data-skin='ledger'] .dash-eyebrow,
+html[data-skin='ledger'] .bf-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+html[data-skin='ledger'] .card-badge.project,
+html[data-skin='ledger'] .card-badge.task,
+html[data-skin='ledger'] .card-badge.audit {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+
+/* ── brand ── */
+html[data-skin='ledger'] .header-icon {
+  background: var(--text);
+  color: var(--bg);
+  border-radius: 3px;
+}
+
+/* ── surfaces: flat paper, ruled edges, no glow ── */
+html[data-skin='ledger'] .card {
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 0 var(--border);
+}
+html[data-skin='ledger'] input,
+html[data-skin='ledger'] textarea,
+html[data-skin='ledger'] select {
+  background: var(--surface);
+  border-radius: 3px;
+}
+html[data-skin='ledger'] input:focus,
+html[data-skin='ledger'] textarea:focus { border-color: var(--text); }
+
+/* ── navigation: words on a line, active one underlined in ink ── */
+html[data-skin='ledger'] .nav-tabs {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 0;
+}
+html[data-skin='ledger'] .nav.nav-bar .nav-tab { border-radius: 0; }
+html[data-skin='ledger'] .nav.nav-bar .nav-tab:hover:not(:disabled) { background: transparent; color: var(--text); }
+html[data-skin='ledger'] .nav.nav-bar .nav-tab.active {
+  background: transparent;
+  box-shadow: inset 0 -2px 0 var(--text);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ── buttons: same outline idea, squarer, ink on paper ── */
+html[data-skin='ledger'] .btn { border-radius: 3px; }
+html[data-skin='ledger'] .btn-primary:hover:not(:disabled),
+html[data-skin='ledger'] .btn-accent:hover:not(:disabled),
+html[data-skin='ledger'] .newtask-open:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+/* ── tags ── */
+html[data-skin='ledger'] .pill { border-radius: 2px; }
+html[data-skin='ledger'] .pill.assignee {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+
+/* ── board: columns as ledger pages ── */
+html[data-skin='ledger'] .kanban-col {
+  background: var(--surface-2);
+  border-radius: 3px;
+  /* faint ruled lines, like an account book */
+  background-image: repeating-linear-gradient(
+    to bottom, transparent 0, transparent 31px, color-mix(in srgb, var(--border) 45%, transparent) 31px, transparent 32px);
+}
+html[data-skin='ledger'] .kanban-col-header {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  padding-bottom: var(--s-2);
+  border-bottom: 2px solid var(--text);
+}
+html[data-skin='ledger'] .kanban-count {
+  font-family: 'IBM Plex Mono', monospace;
+  background: transparent;
+  border: 1px solid var(--border);
+}
+html[data-skin='ledger'] .kanban-card {
+  border-radius: 2px;
+  border-left-width: 3px;
+  box-shadow: 0 1px 0 var(--border);
+}
+html[data-skin='ledger'] .kanban-card:hover { border-color: var(--text); border-left-color: var(--card-edge, var(--st-todo)); }
+
+/* ── activity history: numbered entries on a ruled page with a red margin ── */
+html[data-skin='ledger'] .timeline-list {
+  border-left: 1px solid var(--rule);
+  margin-left: var(--s-2);
+}
+html[data-skin='ledger'] .timeline-dot { display: none; }
+html[data-skin='ledger'] .timeline-item { margin: 0; }
+html[data-skin='ledger'] .timeline-content {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+}
+html[data-skin='ledger'] .tx-id {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--text-dim);
+}
+html[data-skin='ledger'] .timeline-change { font-size: var(--fs-md); }
+
+/* ── audit check: the result is stamped onto the page ── */
+html[data-skin='ledger'] .audit-result {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding-right: 150px;
+}
+html[data-skin='ledger'] .audit-result strong {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 18px;
+}
+html[data-skin='ledger'] .audit-result.good::after,
+html[data-skin='ledger'] .audit-result.bad::after,
+html[data-skin='ledger'] .audit-result.neutral::after {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  padding: 6px 12px;
+  border: 2.5px solid currentColor;
+  border-radius: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transform: rotate(-7deg);
+  opacity: 0.85;
+  pointer-events: none;
+  animation: ledger-stamp 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+html[data-skin='ledger'] .audit-result.good::after { content: 'Verified'; color: var(--success); }
+html[data-skin='ledger'] .audit-result.bad::after { content: 'Mismatch'; color: var(--danger); }
+html[data-skin='ledger'] .audit-result.neutral::after { content: 'Partial'; color: var(--warning); }
+@keyframes ledger-stamp {
+  from { transform: rotate(-7deg) scale(1.6); opacity: 0; }
+  to   { transform: rotate(-7deg) scale(1); opacity: 0.85; }
+}
+@media (max-width: 640px) {
+  html[data-skin='ledger'] .audit-result { padding-right: var(--s-4); padding-top: 64px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin='ledger'] .audit-result::after { animation: none; }
+}
+
+/* ── toasts ── */
+html[data-skin='ledger'] .toast {
+  border-radius: 3px;
+  box-shadow: 0 2px 0 var(--border), 0 8px 24px rgba(40, 30, 10, 0.12);
+  backdrop-filter: none;
+}

@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useAutoRefresh } from './lib/useAutoRefresh'
 import { refreshTargets, sameData } from './refreshLogic'
 import './App.css'
-import Nav from './components/Nav'
+import Sidebar from './components/Sidebar'
+import ProjectHeader from './components/ProjectHeader'
+import TaskDrawer from './components/TaskDrawer'
 import AccountMenu from './components/AccountMenu'
 import AuthPage from './components/AuthPage'
 import VerifyEmailPage from './components/VerifyEmailPage'
@@ -19,6 +21,8 @@ import TaskPage from './components/TaskPage'
 import { useAuth } from './auth/AuthContext'
 import { API, apiFetch } from './lib/api'
 import { busy } from './lib/busy'
+
+const PAGE_TITLES = { dashboard: 'Home', settings: 'Settings', account: 'Account', profile: 'Profile' }
 
 // ── local board-tracking helpers (client-side convenience index over on-chain data) ──
 function getBoardIds(projectId) {
@@ -540,6 +544,23 @@ function App() {
     loadHistory(selectedTask.taskId)
   }
 
+  // Inline editing in the task window: one field, saved as soon as it changes.
+  async function saveField(field, value) {
+    if (!selectedTask || (selectedTask[field] || '') === (value || '')) return true
+    const res = await authFetch(`${API}/tasks/${selectedTask.taskId}/meta`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ field, value })
+    })
+    const data = await res.json()
+    if (!res.ok) { notify(data.error, 'error'); return false }
+    setSelectedTask(data)
+    patchBoardTask(data)
+    notify('Saved')
+    loadHistory(selectedTask.taskId)
+    return true
+  }
+
   async function archiveTask(taskId) {
     const res = await authFetch(`${API}/tasks/${taskId}`, { method: 'DELETE' })
     const data = await res.json()
@@ -645,6 +666,8 @@ function App() {
   }
   const columns = ['todo', 'in-progress', 'done']
   const isArchived = selectedProject?.status === 'archived'
+  const inProject = page === 'board' || page === 'project' || page === 'task'
+  const closeTask = () => goTo(selectedProject ? 'board' : 'dashboard')
 
   // ── Gate the entire app behind login. Nothing below this point is reachable
   // without a valid session.
@@ -664,18 +687,29 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <header className="header">
-        <div className="header-icon">⛓</div>
-        <div className="header-title">
-          <h1>ChainBoard</h1>
-          <p className="subtitle">Hyperledger Fabric · IPFS · Immutable Audit Trail</p>
+    <div className="app shell">
+      <Sidebar
+        myProjects={myProjects} loadingMyProjects={loadingMyProjects}
+        selectedProject={selectedProject} selectMyProject={selectMyProject}
+        page={page} goTo={goTo}
+      />
+
+      <main className="shell-main">
+      <div className="shell-top">
+        <div className="shell-crumb">
+          {inProject && selectedProject
+            ? <><span>Projects</span><span aria-hidden="true">/</span><b>{selectedProject.name}</b></>
+            : <b>{PAGE_TITLES[page] || ''}</b>}
         </div>
         <AccountMenu currentUser={currentUser} page={page} setPage={setPage}
           onLogout={handleLogout} theme={theme} onToggleTheme={toggleTheme} />
-      </header>
+      </div>
 
-      <Nav page={page} setPage={setPage} hasProject={!!selectedProject} hasTask={!!selectedTask} />
+      <div className="shell-content">
+      {inProject && selectedProject && (
+        <ProjectHeader project={selectedProject} page={page} goTo={goTo}
+          taskCount={boardTasks.filter(t => !t.archived).length} />
+      )}
 
       <div className="toast-stack" data-allow-while-busy>
         {toasts.map(t => (
@@ -737,7 +771,7 @@ function App() {
         />
       )}
 
-      {page === 'board' && (
+      {(page === 'board' || (page === 'task' && selectedProject)) && (
         <BoardPage
           currentUser={currentUser}
           selectedProject={selectedProject} isArchived={isArchived}
@@ -750,7 +784,7 @@ function App() {
         />
       )}
 
-      {page === 'task' && (
+      <TaskDrawer open={page === 'task'} onClose={closeTask}>
         <TaskPage
           key={selectedTask ? selectedTask.taskId : 'none'}
           currentUser={currentUser}
@@ -759,7 +793,7 @@ function App() {
           loadTaskAndHistory={loadTaskAndHistory} loadingTask={loadingTask}
           statusMeta={statusMeta} priorityMeta={priorityMeta} columns={columns}
           updateStatus={updateStatus}
-          editMeta={editMeta} setEditMeta={setEditMeta} startEditMeta={startEditMeta} saveMeta={saveMeta}
+          saveField={saveField}
           assignTo={assignTo} setAssignTo={setAssignTo} assignTask={assignTask}
           uploadFile={uploadFile} setUploadFile={setUploadFile} uploadAndAttach={uploadAndAttach} uploading={uploading}
           displayName={displayName}
@@ -767,7 +801,9 @@ function App() {
           newComment={newComment} setNewComment={setNewComment} addComment={addComment}
           goTo={goTo}
         />
-      )}
+      </TaskDrawer>
+      </div>
+      </main>
     </div>
   )
 }

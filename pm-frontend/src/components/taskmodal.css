@@ -1,0 +1,228 @@
+/* Task window: header (title + actions), one strip of properties, then the
+   content in a single column. No nested cards. */
+
+.tw-body > .tp { padding: var(--s-5); }   /* "no task selected" state */
+
+.tm-layout { display: flex; flex-direction: column; }
+
+/* ── header ── */
+.tm-head {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end;
+  column-gap: var(--s-4); row-gap: 4px;
+  padding: 22px 64px 18px 32px;
+}
+.tm-crumb { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--s-2); font-size: var(--fs-sm); color: var(--text-dim); }
+.tm-archived { font-size: var(--fs-xs); border: 1px solid var(--border); border-radius: var(--r-pill); padding: 0 var(--s-2); }
+.tm-title { margin: 0; font-size: 24px; font-weight: var(--fw-bold); letter-spacing: -0.015em; line-height: 1.25; overflow-wrap: anywhere; }
+.tm-title-input { width: 100%; font-size: 20px; font-weight: var(--fw-semibold); }
+.tm-head { grid-template-columns: 1fr; }
+.tm-statusrow { margin-top: var(--s-3); }
+.tm-saving { margin-left: auto; font-size: var(--fs-xs); color: var(--accent); }
+
+/* in-place editing: looks like plain text until you hover or click */
+.tm-title-edit, .tm-desc-edit {
+  width: 100%; margin-left: -8px; padding: 2px 8px;
+  background: transparent; border: 1px solid transparent; border-radius: var(--r-md);
+  color: var(--text); font-family: inherit;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.tm-title-edit { font-size: 24px; font-weight: var(--fw-bold); letter-spacing: -0.015em; }
+.tm-desc-edit { display: block; resize: none; field-sizing: content; min-height: 4.8em; font-size: var(--fs-md); line-height: 1.6; padding: 0; margin: 0; }
+
+/* description box: soft panel; click to edit, Save / Cancel underneath */
+.tm-desc-box {
+  position: relative; display: block; width: 100%;
+  padding: 14px 16px; margin: 0;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font: inherit; font-size: var(--fs-md); line-height: 1.6; text-align: left;
+}
+.tm-desc-text { display: block; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 75ch; }
+.tm-desc-view { cursor: text; transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease); }
+.tm-desc-view:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); background: var(--surface); }
+.tm-desc-view:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.tm-desc-view.is-empty { border-style: dashed; }
+.tm-desc-empty { color: var(--text-faint); }
+.tm-desc-pen {
+  position: absolute; top: 8px; right: 10px;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--accent);
+  opacity: 0; transition: opacity var(--t-fast) var(--ease);
+}
+.tm-desc-view:hover .tm-desc-pen, .tm-desc-view:focus-visible .tm-desc-pen { opacity: 1; }
+.tm-desc-view.is-empty .tm-desc-pen { display: none; }
+.tm-desc-box.is-editing { background: var(--surface); border-color: var(--accent); box-shadow: var(--focus-ring); }
+.tm-desc-box.is-editing .tm-desc-edit,
+.tm-desc-box.is-editing .tm-desc-edit:hover,
+.tm-desc-box.is-editing .tm-desc-edit:focus { background: transparent; border: 0; box-shadow: none; outline: none; }
+.tm-desc-foot { display: flex; align-items: center; gap: var(--s-2); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.tm-desc-hint { margin-left: auto; font-size: var(--fs-xs); color: var(--text-faint); }
+.tm-desc-read { background: transparent; border-color: transparent; padding-left: 0; }
+.tm-title-edit:hover, .tm-desc-edit:hover { background: var(--overlay); }
+.tm-title-edit:focus, .tm-desc-edit:focus { outline: none; background: var(--surface); border-color: var(--accent); box-shadow: var(--focus-ring); }
+.tm-desc-edit::placeholder { color: var(--text-faint); }
+
+.tm-inline-select { min-width: 170px; }
+
+/* status buttons: current one tinted in its own status colour, not the accent fill */
+.tm-statusrow .status-btn.active {
+  background: color-mix(in srgb, currentColor 12%, var(--surface));
+  font-weight: var(--fw-semibold);
+}
+
+/* while the change is written, the new status stays fully visible */
+html[data-busy='true'] .tm-statusrow .status-btn.active { opacity: 1; }
+
+/* priority dropdown coloured by the current priority (low grey, medium amber, high red) */
+.tm-prio .select-trigger {
+  border-color: color-mix(in srgb, var(--c) 45%, var(--border));
+  background: color-mix(in srgb, var(--c) 10%, var(--surface));
+  color: var(--c); font-weight: var(--fw-semibold);
+}
+.tm-prio .select-value { display: inline-flex; align-items: center; gap: 8px; }
+.tm-prio .select-value::before,
+.tm-prio .select-option-label::before {
+  content: ''; width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--c);
+}
+.tm-prio .select-option-label { display: inline-flex; align-items: center; gap: 8px; }
+.tm-prio .select-option:nth-child(1) .select-option-label::before { background: var(--text-dim); }
+.tm-prio .select-option:nth-child(2) .select-option-label::before { background: var(--warning); }
+.tm-prio .select-option:nth-child(3) .select-option-label::before { background: var(--danger); }
+.tm-inline-date { min-width: 170px; }
+.tm-due-hint { text-transform: none; letter-spacing: 0; font-size: 11px; font-weight: var(--fw-semibold); color: var(--text-dim); }
+.tm-due-hint.soon { color: var(--st-soon); }
+.tm-due-hint.overdue { color: var(--st-overdue); }
+
+/* read-only notice under the status buttons */
+.tm-readonly {
+  display: flex; align-items: flex-start; gap: var(--s-2);
+  margin: 0 32px 16px; padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--warning) 40%, var(--border));
+  background: color-mix(in srgb, var(--warning) 9%, var(--surface));
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm); color: var(--text); line-height: 1.45;
+}
+.tm-readonly { animation: tm-shake 360ms var(--ease); }
+.tm-readonly > div { flex: 1; }
+.tm-readonly-x {
+  flex: none; margin: -4px -6px 0 0; width: 24px; height: 24px;
+  background: none; border: 0; border-radius: var(--r-sm); cursor: pointer;
+  color: var(--text-dim); font-size: 18px; line-height: 1;
+}
+.tm-readonly-x:hover { background: var(--overlay); color: var(--text); }
+@keyframes tm-shake {
+  0% { opacity: 0; transform: translateY(-4px); }
+  40% { opacity: 1; transform: translateX(-4px); }
+  60% { transform: translateX(4px); }
+  80% { transform: translateX(-2px); }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .tm-readonly { animation: none; } }
+
+/* locked things look normal but say "not allowed" on hover; clicking explains why */
+.tm-locked, .tm-locked * { cursor: not-allowed !important; }
+.tm-statusrow .status-btn.is-locked { opacity: 0.35; cursor: not-allowed; }
+.tm-readonly svg { flex: none; margin-top: 2px; color: var(--warning); }
+.tm-readonly.tm-done { border-color: color-mix(in srgb, var(--success) 40%, var(--border)); background: color-mix(in srgb, var(--success) 8%, var(--surface)); }
+.tm-readonly.tm-done svg { color: var(--success); }
+@media (max-width: 860px) { .tm-readonly { margin: 0 18px 14px; } }
+
+/* ── properties strip ── */
+.tm-strip {
+  margin: 0; padding: 14px 32px;
+  display: grid; grid-template-columns: repeat(4, auto); justify-content: start; column-gap: 40px; align-items: start; row-gap: var(--s-3);
+  background: var(--bg);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.tm-cell { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.tm-cell dt {
+  display: flex; align-items: center; gap: var(--s-2); min-height: 18px;
+  font-size: 11px; font-weight: var(--fw-semibold); color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.tm-cell dd { margin: 0; min-height: 26px; display: flex; align-items: center; font-size: var(--fs-sm); color: var(--text); }
+
+/* status + priority: same chip shape, coloured by --c */
+.tm-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 10px 0 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+  background: color-mix(in srgb, var(--c) 10%, var(--surface));
+  color: color-mix(in srgb, var(--c) 80%, var(--text));
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); white-space: nowrap;
+}
+.tm-chip-icon { flex: none; color: var(--c); }
+.tm-status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--st); flex: none; }
+
+.tm-due { display: inline-flex; align-items: baseline; gap: 6px; font-weight: var(--fw-semibold); white-space: nowrap; }
+.tm-due.soon { color: var(--st-soon); }
+.tm-due.overdue { color: var(--st-overdue); }
+.tm-sub { font-size: var(--fs-xs); font-weight: normal; color: var(--text-dim); }
+
+.tm-cell .t-person { white-space: nowrap; }
+
+.tm-inline-link {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--accent); font: inherit; font-size: 11px; font-weight: var(--fw-semibold);
+  text-transform: none; letter-spacing: 0;
+}
+.tm-inline-link:hover { text-decoration: underline; }
+.tm-inline-link:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 2px; }
+
+.tm-idchip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 180px;
+  padding: 2px 4px 2px 8px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md);
+  color: var(--text); font-size: var(--fs-xs); cursor: pointer;
+}
+.tm-idchip .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-idchip-act { color: var(--accent); font-weight: var(--fw-semibold); padding: 0 4px; }
+.tm-idchip:hover { border-color: var(--accent); }
+.tm-idchip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* assign bar: opens under the strip when "Assign/Change" is clicked */
+.tm-assignbar {
+  display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap;
+  padding: 12px 32px; border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  font-size: var(--fs-sm); color: var(--text-dim);
+}
+.tm-assignbar > :nth-child(2) { flex: 1; min-width: 200px; max-width: 360px; }
+
+/* ── content ── */
+.tm-main { padding: var(--s-2) 32px var(--s-5); min-width: 0; }
+.tm-sec { padding: 20px 0; border-bottom: 1px solid var(--border); }
+.tm-h { margin: 0 0 var(--s-2); font-size: var(--fs-md); font-weight: var(--fw-semibold); display: flex; align-items: center; gap: var(--s-2); }
+.tm-sec .proj-section-head { margin-bottom: var(--s-3); }
+.tm-sec .t-desc { margin: 0; white-space: pre-wrap; line-height: 1.6; }
+.tm-textarea { width: 100%; resize: vertical; }
+
+.tm-archive { padding-top: var(--s-4); }
+.tm-archive-link {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--danger); font: inherit; font-size: var(--fs-sm);
+}
+.tm-archive-link:hover:not(:disabled) { text-decoration: underline; }
+.tm-archive-link:disabled, .tm-archive-link.is-locked { color: var(--text-faint); cursor: not-allowed; text-decoration: none; }
+.tm-archive-row { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+.tm-inline-note {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  padding: 6px 8px 6px 10px; border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--warning) 40%, var(--border));
+  background: color-mix(in srgb, var(--warning) 9%, var(--surface));
+  font-size: var(--fs-sm); color: var(--text);
+  animation: tm-shake 360ms var(--ease);
+}
+.tm-inline-note svg { color: var(--warning); flex: none; }
+.tm-inline-note .tm-readonly-x { margin: 0; }
+.tm-confirm { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2) var(--s-3); font-size: var(--fs-sm); }
+.tm-confirm > div { display: flex; gap: var(--s-2); }
+
+/* ── narrow ── */
+@media (max-width: 860px) {
+  .tm-head { grid-template-columns: 1fr; padding: 18px 56px 14px 18px; }
+  .tm-actions { justify-content: flex-start; }
+  .tm-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 14px 18px; column-gap: var(--s-4); }
+  .tm-assignbar { padding: 12px 18px; }
+  .tm-main { padding: var(--s-2) 18px var(--s-4); }
+}

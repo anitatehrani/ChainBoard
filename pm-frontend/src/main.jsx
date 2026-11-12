@@ -4,6 +4,7 @@ import App from './App.jsx'
 import { AuthProvider } from './auth/AuthContext.jsx'
 import { installBusyGuard } from './lib/busy.js'
 import './index.css'
+import './design/tactile.css'
 
 // Locks every button and form while a change is on its way to the server.
 installBusyGuard()

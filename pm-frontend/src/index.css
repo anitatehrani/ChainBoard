@@ -23,13 +23,18 @@
 }
 
 :root[data-theme='light'] {
-  --bg: #f4f5f7;
+  /* Light theme, based on readability guidance:
+     - background: soft warm off-white instead of grey or pure white (less glare,
+       no "dull" cast); cards stay pure white so content stands out on top
+     - text: near-black, not pure black (comfortable, ~15:1 contrast)
+     - secondary/faint text kept at or above WCAG AA 4.5:1 on white */
+  --bg: #f7f6f3;
   --surface: #ffffff;
-  --surface-2: #f1f2f5;
-  --border: #e1e3e8;
-  --text: #1a1d23;
-  --text-dim: #5b6270;
-  --text-faint: #9096a2;
+  --surface-2: #f2f1ed;
+  --border: #e5e3dd;
+  --text: #1f2328;
+  --text-dim: #4f5661;
+  --text-faint: #6e7781;
   --accent: #6366f1;
   --accent-hover: #4f46e5;
   --success: #16a34a;

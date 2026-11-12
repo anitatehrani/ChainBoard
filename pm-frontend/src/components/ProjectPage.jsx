@@ -91,21 +91,17 @@ function ProjectPage({
 
   return (
     <div className="proj">
-      <button type="button" className="back-link btn-link" onClick={() => goTo('dashboard')}>← All projects</button>
-
+      {/* Name, description and the way back to the board are in the project
+          header above (workspace layout). */}
       <section className="card proj-hero">
         <div className="proj-hero-top">
           <div className="proj-hero-title">
-            <h2>{selectedProject.name}</h2>
             <span className="state-tag" data-state={isArchived ? 'archived' : 'active'}>{selectedProject.status}</span>
             {myRole && <span className={`pill sm role-${myRole}`} title={roleLabel(selectedProject, currentUser.email)}>Your role: {ROLE_TEXT[myRole] || myRole}</span>}
           </div>
-          <button type="button" className="btn btn-accent" onClick={() => goTo('board')}>Open board →</button>
         </div>
 
         {isArchived && <div className="archived-banner" role="status">This project is archived — read-only</div>}
-
-        <p className="proj-desc">{selectedProject.description || 'No description'}</p>
 
         <div className="proj-facts">
           <span className="meta-chip">Owner <b>{displayName(selectedProject.ownerId)}</b></span>

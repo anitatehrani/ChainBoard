@@ -61,7 +61,8 @@ export function installBusyGuard(doc = document, tracker = busy) {
   // Remember the button being used at the moment a request starts.
   function remember() {
     const a = doc.activeElement
-    if (a && a.tagName === 'BUTTON' && !marked) { marked = a; a.setAttribute('data-loading', 'true') }
+    // Buttons marked data-no-spinner update optimistically, so their label stays visible.
+    if (a && a.tagName === 'BUTTON' && !marked && !a.hasAttribute('data-no-spinner')) { marked = a; a.setAttribute('data-loading', 'true') }
   }
 
   const unsubscribe = tracker.subscribe(isBusy => {

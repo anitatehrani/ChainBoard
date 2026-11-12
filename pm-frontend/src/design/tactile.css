@@ -1,0 +1,306 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   "Tactile" skin (soft brutalism)
+   Thick ink outlines, hard offset shadows, flat colour blocks and buttons
+   that physically press down. Only active while <html data-skin="tactile">
+   is set (index.html); remove that attribute to go back to the old look.
+   ───────────────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+/* ── palette: light ── */
+:root[data-skin='tactile'],
+:root[data-skin='tactile'][data-theme='light'] {
+  --bg: #f5f1e8;
+  --surface: #ffffff;
+  --surface-2: #fbf8f1;
+  --border: #141414;
+  --text: #141414;
+  --text-dim: #4a4740;
+  --text-faint: #8a857a;
+  --accent: #141414;
+  --accent-hover: #141414;
+  --success: #1e8a4c;
+  --warning: #b86e00;
+  --danger: #d6372b;
+  --info: #2563c9;
+  --overlay: rgba(0, 0, 0, 0.05);
+  --toast-success-bg: #ffffff;
+  --toast-error-bg: #ffffff;
+
+  /* block colours */
+  --tk-yellow: #ffd23f;
+  --tk-blue: #8ec5ff;
+  --tk-green: #8fe3a8;
+  --tk-pink: #ffb3c7;
+  --tk-red: #ff8a7a;
+  --tk-ink: #141414;
+  --tk-line: 2px solid var(--tk-ink);
+  --tk-shadow: 4px 4px 0 var(--tk-ink);
+  --tk-shadow-sm: 2px 2px 0 var(--tk-ink);
+
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+  --focus-ring: 0 0 0 3px var(--tk-yellow), 0 0 0 5px var(--tk-ink);
+}
+
+/* ── palette: dark ── */
+:root[data-skin='tactile'][data-theme='dark'] {
+  --bg: #17171a;
+  --surface: #222226;
+  --surface-2: #1c1c20;
+  --border: #f2eee4;
+  --text: #f2eee4;
+  --text-dim: #c4bfb3;
+  --text-faint: #8b877e;
+  --accent: #f2eee4;
+  --accent-hover: #ffffff;
+  --success: #6fdc95;
+  --warning: #ffc861;
+  --danger: #ff7a6b;
+  --info: #8ec5ff;
+  --overlay: rgba(255, 255, 255, 0.06);
+  --toast-success-bg: #222226;
+  --toast-error-bg: #222226;
+  --tk-ink: #f2eee4;
+  --tk-yellow: #e8b923;
+  --tk-blue: #3d6fb0;
+  --tk-green: #2f8a54;
+  --tk-pink: #b4567a;
+  --tk-red: #c2473b;
+}
+
+/* ── type ── */
+html[data-skin='tactile'] body { font-family: 'Space Grotesk', -apple-system, sans-serif; }
+html[data-skin='tactile'] code,
+html[data-skin='tactile'] .mono { font-family: 'Space Mono', monospace; }
+html[data-skin='tactile'] h1, html[data-skin='tactile'] h2, html[data-skin='tactile'] h3,
+html[data-skin='tactile'] .card-header h2, html[data-skin='tactile'] .proj-h3,
+html[data-skin='tactile'] .dash-hello, html[data-skin='tactile'] .dash-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+html[data-skin='tactile'] .dash-hello { font-size: 34px; }
+html[data-skin='tactile'] .card-header h2 { font-size: 22px; }
+
+/* labels as little stickers */
+html[data-skin='tactile'] .card-badge,
+html[data-skin='tactile'] .card-badge.project,
+html[data-skin='tactile'] .card-badge.task,
+html[data-skin='tactile'] .card-badge.audit {
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #141414;
+  background: var(--tk-yellow);
+  border: var(--tk-line);
+  border-radius: 6px;
+  box-shadow: var(--tk-shadow-sm);
+}
+html[data-skin='tactile'] .card-badge.task { background: var(--tk-green); }
+html[data-skin='tactile'] .card-badge.audit { background: var(--tk-pink); }
+
+/* ── brand ── */
+html[data-skin='tactile'] .header-icon {
+  background: var(--tk-yellow);
+  color: #141414;
+  border: var(--tk-line);
+  border-radius: 12px;
+  box-shadow: var(--tk-shadow);
+}
+
+/* ── surfaces ── */
+html[data-skin='tactile'] .card {
+  border: var(--tk-line);
+  border-radius: 14px;
+  box-shadow: var(--tk-shadow);
+}
+html[data-skin='tactile'] input,
+html[data-skin='tactile'] textarea,
+html[data-skin='tactile'] select {
+  background: var(--surface);
+  border: var(--tk-line);
+  border-radius: 10px;
+}
+html[data-skin='tactile'] input:focus,
+html[data-skin='tactile'] textarea:focus { border-color: var(--tk-ink); box-shadow: var(--tk-shadow-sm); }
+
+/* ── navigation: chunky tabs, the active one is a yellow block ── */
+html[data-skin='tactile'] .nav-tabs {
+  border: var(--tk-line);
+  border-radius: 14px;
+  box-shadow: var(--tk-shadow);
+  background: var(--surface);
+}
+html[data-skin='tactile'] .nav.nav-bar .nav-tab { font-weight: 600; color: var(--text); }
+html[data-skin='tactile'] .nav.nav-bar .nav-tab.active {
+  background: var(--tk-yellow);
+  color: #141414;
+  box-shadow: inset 0 0 0 2px var(--tk-ink);
+}
+
+/* ── buttons: physical, they press down when clicked ── */
+html[data-skin='tactile'] .btn,
+html[data-skin='tactile'] .btn-primary,
+html[data-skin='tactile'] .btn-accent,
+html[data-skin='tactile'] .btn-success,
+html[data-skin='tactile'] .btn-secondary,
+html[data-skin='tactile'] .btn-danger,
+html[data-skin='tactile'] .newtask-open,
+html[data-skin='tactile'] .board-settings {
+  border: var(--tk-line);
+  border-radius: 10px;
+  color: #141414;
+  font-weight: 700;
+  box-shadow: var(--tk-shadow-sm);
+  transition: transform 80ms ease, box-shadow 80ms ease, background 120ms ease;
+}
+html[data-skin='tactile'] .btn-primary,
+html[data-skin='tactile'] .btn-accent,
+html[data-skin='tactile'] .newtask-open { background: var(--tk-yellow); }
+html[data-skin='tactile'] .btn-success { background: var(--tk-green); }
+html[data-skin='tactile'] .btn-secondary,
+html[data-skin='tactile'] .board-settings { background: var(--surface); color: var(--text); }
+html[data-skin='tactile'] .btn-danger { background: var(--tk-red); }
+
+html[data-skin='tactile'] .btn:hover:not(:disabled),
+html[data-skin='tactile'] .newtask-open:hover:not(:disabled),
+html[data-skin='tactile'] .board-settings:hover:not(:disabled) {
+  opacity: 1;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--tk-ink);
+}
+html[data-skin='tactile'] .btn-primary:hover:not(:disabled),
+html[data-skin='tactile'] .btn-accent:hover:not(:disabled),
+html[data-skin='tactile'] .newtask-open:hover:not(:disabled) { background: var(--tk-yellow); }
+html[data-skin='tactile'] .btn-success:hover:not(:disabled) { background: var(--tk-green); }
+html[data-skin='tactile'] .btn-danger:hover:not(:disabled) { background: var(--tk-red); }
+html[data-skin='tactile'] .btn-secondary:hover:not(:disabled),
+html[data-skin='tactile'] .board-settings:hover:not(:disabled) { background: var(--surface); color: var(--text); }
+
+html[data-skin='tactile'] .btn:active:not(:disabled),
+html[data-skin='tactile'] .newtask-open:active:not(:disabled),
+html[data-skin='tactile'] .board-settings:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--tk-ink);
+}
+html[data-skin='tactile'] .btn:disabled,
+html[data-skin='tactile'] .newtask-open:disabled {
+  background: var(--surface-2);
+  color: var(--text-faint);
+  border-color: var(--text-faint);
+  box-shadow: none;
+}
+html[data-skin='tactile'] button[data-loading='true']::after { border-top-color: #141414; }
+
+/* priority picker in the new-task form */
+html[data-skin='tactile'] .nt-seg { border: var(--tk-line); border-radius: 10px; box-shadow: var(--tk-shadow-sm); }
+html[data-skin='tactile'] .nt-seg-btn { border-right: var(--tk-line); color: var(--text); font-weight: 600; }
+html[data-skin='tactile'] .nt-seg-btn.on { background: var(--tk-yellow); color: #141414; }
+html[data-skin='tactile'] .nt-seg-btn.p-high.on { background: var(--tk-red); }
+html[data-skin='tactile'] .nt-seg-btn.p-low.on { background: var(--tk-blue); }
+
+/* filter chips */
+html[data-skin='tactile'] .bf-chip { border: var(--tk-line); color: var(--text); font-weight: 600; }
+html[data-skin='tactile'] .bf-chip.on { background: var(--tk-yellow); color: #141414; box-shadow: var(--tk-shadow-sm); }
+
+/* ── tags ── */
+html[data-skin='tactile'] .pill {
+  border: 1.5px solid var(--tk-ink);
+  font-weight: 700;
+}
+html[data-skin='tactile'] .pill.assignee { background: var(--tk-pink); color: #141414; }
+
+/* ── board: each column is a coloured block ── */
+html[data-skin='tactile'] .kanban { gap: var(--s-5); }
+html[data-skin='tactile'] .kanban-col {
+  border: var(--tk-line);
+  border-radius: 14px;
+  box-shadow: var(--tk-shadow);
+  background: var(--surface-2);
+  padding: 0 var(--s-3) var(--s-3);
+  overflow: hidden;
+}
+html[data-skin='tactile'] .kanban-col-header {
+  margin: 0 calc(-1 * var(--s-3)) var(--s-3);
+  padding: var(--s-3);
+  border-bottom: var(--tk-line);
+  color: #141414 !important;
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  background: var(--tk-yellow);
+}
+html[data-skin='tactile'] .kanban > :nth-child(2) .kanban-col-header { background: var(--tk-blue); }
+html[data-skin='tactile'] .kanban > :nth-child(3) .kanban-col-header { background: var(--tk-green); }
+html[data-skin='tactile'] .kanban-col-dot { display: none; }
+html[data-skin='tactile'] .kanban-count {
+  background: var(--surface);
+  color: #141414;
+  border: var(--tk-line);
+}
+html[data-skin='tactile'] .kanban-card {
+  border: var(--tk-line);
+  border-left: 8px solid var(--card-edge, var(--st-todo));
+  border-radius: 10px;
+  box-shadow: var(--tk-shadow-sm);
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+html[data-skin='tactile'] .kanban-card:hover {
+  border-color: var(--tk-ink);
+  border-left-color: var(--card-edge, var(--st-todo));
+  transform: translate(-2px, -2px);
+  box-shadow: var(--tk-shadow);
+}
+html[data-skin='tactile'] .kanban-card-title { font-weight: 700; }
+
+/* ── activity history: stacked index cards ── */
+html[data-skin='tactile'] .timeline-content {
+  background: var(--surface);
+  border: var(--tk-line);
+  border-radius: 10px;
+  box-shadow: var(--tk-shadow-sm);
+}
+html[data-skin='tactile'] .timeline-dot { border: var(--tk-line); width: 14px; height: 14px; }
+html[data-skin='tactile'] .tx-id {
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  background: var(--tk-yellow);
+  color: #141414;
+  border: 1.5px solid var(--tk-ink);
+  border-radius: 6px;
+  padding: 1px 8px;
+}
+
+/* ── audit check: a big coloured result block ── */
+html[data-skin='tactile'] .audit-result {
+  border: var(--tk-line);
+  border-radius: 14px;
+  box-shadow: var(--tk-shadow);
+  color: #141414;
+}
+html[data-skin='tactile'] .audit-result p,
+html[data-skin='tactile'] .audit-note { color: #141414; }
+html[data-skin='tactile'] .audit-result strong { font-size: 20px; color: #141414 !important; }
+html[data-skin='tactile'] .audit-result .audit-icon { color: #141414 !important; }
+html[data-skin='tactile'] .audit-result.good { background: var(--tk-green); }
+html[data-skin='tactile'] .audit-result.bad { background: var(--tk-red); }
+html[data-skin='tactile'] .audit-result.neutral { background: var(--tk-yellow); }
+html[data-skin='tactile'] .audit-records summary { color: #141414; font-weight: 600; }
+html[data-skin='tactile'] .audit-records ol { color: #141414; }
+
+/* ── toasts ── */
+html[data-skin='tactile'] .toast {
+  border: var(--tk-line) !important;
+  border-radius: 12px;
+  box-shadow: var(--tk-shadow);
+  backdrop-filter: none;
+  font-weight: 600;
+}
+html[data-skin='tactile'] .toast.success { background: var(--tk-green); color: #141414; }
+html[data-skin='tactile'] .toast.error { background: var(--tk-red); color: #141414; }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin='tactile'] .btn, html[data-skin='tactile'] .kanban-card { transition: none; }
+}
