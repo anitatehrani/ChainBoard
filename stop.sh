@@ -25,8 +25,24 @@ stop_pid() {   # stop_pid <name>: kills the whole process group started by start
   rm -f "$f"
 }
 
+free_port() {   # free_port <name> <port>: wait until the port is released; stop leftovers holding it
+  local name="$1" port="$2" i
+  for i in $(seq 1 20); do
+    (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null || return 0   # nothing listens: done
+    sleep 0.5
+  done
+  if command -v fuser >/dev/null; then
+    fuser -k "$port/tcp" >/dev/null 2>&1 && echo "Stopped a leftover $name process on port $port."
+  else
+    pkill -f "node .*--watch app.js" 2>/dev/null; pkill -f "vite" 2>/dev/null
+  fi
+  sleep 1
+}
+
 stop_pid frontend
 stop_pid backend
+free_port frontend 5173
+free_port backend 3000
 
 if [ "$ALL" -eq 1 ]; then
   stop_pid ipfs
