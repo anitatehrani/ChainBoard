@@ -16,7 +16,13 @@
 .tm-title { margin: 0; font-size: 24px; font-weight: var(--fw-bold); letter-spacing: -0.015em; line-height: 1.25; overflow-wrap: anywhere; }
 .tm-title-input { width: 100%; font-size: 20px; font-weight: var(--fw-semibold); }
 .tm-head { grid-template-columns: 1fr; }
-.tm-statusrow { margin-top: var(--s-3); }
+.tm-statusrow { margin-top: 6px; }
+/* same label style as Priority / Due / Assignee / Task ID */
+.tm-status-title {
+  display: block; margin-top: var(--s-4);
+  font-size: 11px; font-weight: var(--fw-semibold); color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: .06em;
+}
 .tm-saving { margin-left: auto; font-size: var(--fs-xs); color: var(--accent); }
 
 /* in-place editing: looks like plain text until you hover or click */

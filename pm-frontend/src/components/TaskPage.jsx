@@ -147,17 +147,21 @@ function TaskPage({
   // There is no "Edit" mode: each field is edited in place and saved on its own.
   const canEdit = editable && mayWork.allowed
   // Why this task is locked, shown only after a click on something you can't change.
+  // Order matters: archived beats everything, then missing permission, then "done".
   const lock = archived
     ? { tone: 'archived', title: 'This task is archived.', text: 'It is kept for the record and can no longer be changed.' }
-    : t.status === 'done'
-      ? { tone: 'done', title: 'This task is done.', text: 'Finished tasks can no longer be edited.' }
-      : !mayWork.allowed
-        ? { tone: 'perm', title: 'You can’t change this task.',
-            text: (mayWork.reason || 'You do not have permission to change it.') +
-              (mayAssign.allowed && canReassign ? ' You can still reassign it.' : '') +
-              (canComment(selectedProject, currentUser.email).allowed ? ' You can still add comments.' : '') }
+    : !mayWork.allowed
+      ? { tone: 'perm', title: 'You can’t change this task.',
+          text: (mayWork.reason || 'You do not have permission to change it.') +
+            (mayAssign.allowed && canReassign ? ' You can still reassign it.' : '') +
+            (canComment(selectedProject, currentUser.email).allowed ? ' You can still add comments.' : '') }
+      : t.status === 'done'
+        ? { tone: 'done', title: 'This task is done.', text: 'To change it, move it back to In Progress or To Do first. Reopening is recorded in its history.' }
         : null
   const locked = !!lock
+  // A done task can still be reopened (the chaincode allows done → in-progress / todo),
+  // so the status buttons are only locked by archiving or missing permission.
+  const statusLocked = archived || !mayWork.allowed
   return (
     <div className="tm-layout" data-status={t.status} style={{ '--st': statusColor?.color }}>
       {/* ── header ── */}
@@ -181,12 +185,13 @@ function TaskPage({
         )}
 
         {/* status: the three buttons, as before */}
-        <div className="status-buttons tm-statusrow" role="group" aria-label="Status">
+        <span className="tm-status-title" id="tm-status-title">Status</span>
+        <div className="status-buttons tm-statusrow" role="group" aria-labelledby="tm-status-title">
           {columns.map(s => {
             const isCurrent = t.status === s
             const allowed = isAllowedMove(t.status, s) && mayWork.allowed && !archived
             // Locked task: the button stays clickable so the click can explain why.
-            const lockedBtn = locked && !isCurrent
+            const lockedBtn = statusLocked && !isCurrent
             return (
               <button key={s} type="button" data-no-spinner
                 onClick={lockedBtn ? deny : (isCurrent ? undefined : async () => { setSaving('status'); try { await updateStatus(t.taskId, s) } finally { setSaving('') } })}
