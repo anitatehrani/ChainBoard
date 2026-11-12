@@ -2,3 +2,5 @@ node_modules/
 .env
 # Runtime data: login sessions (hashed tokens) and mail preview files
 data/
+benchmark-results.csv
+benchmark-results.json
