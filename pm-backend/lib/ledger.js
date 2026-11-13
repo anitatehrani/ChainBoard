@@ -80,15 +80,31 @@ function createFabricLedger(config) {
         }
     }
 
+    // The gateway waits for the commit on its own peer only. If the next write
+    // follows immediately, the other organization's peer may not have that block
+    // yet, so the two endorsements read different versions and Fabric refuses
+    // with "ProposalResponsePayloads do not match". Nothing was ordered or
+    // committed in that case, so it is safe to try again once the peer caught up.
+    const TRANSIENT = /ProposalResponsePayloads do not match|MVCC_READ_CONFLICT|PHANTOM_READ_CONFLICT/i;
+    const RETRY_DELAYS_MS = [400, 1000, 2000];
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
     async function run(kind, fn, args) {
-        try {
-            const bytes = await withContract(contract => contract[kind](fn, ...args.map(String)));
-            const text = Buffer.from(bytes).toString();
-            return text ? JSON.parse(text) : null;
-        } catch (err) {
-            console.error(err);
-            const message = formatError(err);
-            throw new LedgerError(message, classify(message, err));
+        for (let attempt = 0; ; attempt++) {
+            try {
+                const bytes = await withContract(contract => contract[kind](fn, ...args.map(String)));
+                const text = Buffer.from(bytes).toString();
+                return text ? JSON.parse(text) : null;
+            } catch (err) {
+                const message = formatError(err);
+                if (kind === 'submitTransaction' && TRANSIENT.test(message) && attempt < RETRY_DELAYS_MS.length) {
+                    console.warn(`[ledger] ${fn}: peers not in sync yet, retrying (${attempt + 1}/${RETRY_DELAYS_MS.length})`);
+                    await sleep(RETRY_DELAYS_MS[attempt]);
+                    continue;
+                }
+                console.error(err);
+                throw new LedgerError(message, classify(message, err));
+            }
         }
     }
 

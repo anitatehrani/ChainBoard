@@ -9,6 +9,14 @@
 
 % graphicx is needed to include images
 \usepackage{graphicx}
+\usepackage{adjustbox}
+\usepackage{float}
+\usepackage{flafter} % a figure never appears before the text that introduces it
+% let large figures share a page with text and with each other (less empty space)
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.7}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
 
 % xspace is used to add a space after a macro, if needed
 \usepackage{xspace}
@@ -98,11 +106,23 @@
 % \screenshot{file}{caption}{label}: includes images/<file> when it exists,
 % otherwise draws a labelled placeholder so the document still compiles.
 % Use file names without underscores.
-\newcommand{\screenshot}[3]{%
-    \begin{figure}[tb]
+% Screenshots never appear before the text that introduces them (flafter). \screenshot uses the full text width; \modalshot crops
+% the blurred background around a window (about 23.5% left/right, 4% top/bottom)
+% so that the window itself fills the width.
+\newcommand{\modalshot}[3]{%
+    \begin{figure}[tbp]
         \centering
         \IfFileExists{#1}%
-            {\includegraphics[width=0.92\textwidth]{#1}}%
+            {\adjustbox{trim={.235\width} {.04\height} {.235\width} {.04\height},clip,width=0.66\textwidth}{\includegraphics{#1}}}%
+            {\fbox{\parbox{0.8\textwidth}{\centering\vspace{2.2cm}\texttt{#1}\\[2pt]\small screenshot to be added\vspace{2.2cm}}}}
+        \caption{#2}
+        \label{#3}
+    \end{figure}}
+\newcommand{\screenshot}[3]{%
+    \begin{figure}[tbp]
+        \centering
+        \IfFileExists{#1}%
+            {\includegraphics[width=\textwidth]{#1}}%
             {\fbox{\parbox{0.8\textwidth}{\centering\vspace{2.2cm}\texttt{#1}\\[2pt]\small screenshot to be added\vspace{2.2cm}}}}
         \caption{#2}
         \label{#3}

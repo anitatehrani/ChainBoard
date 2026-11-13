@@ -20,9 +20,15 @@ const BASE = (process.env.BASE_URL || 'http://localhost:3000').replace(/\/$/, ''
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'Blockchain&IPFS-Genova-2026';
 const TESTER_PASSWORD = process.env.TESTER_PASSWORD || 'Genova-Test#2026';
 
-const n = Number(process.argv[2] || 1);
+//   node scripts/seed-usertest.js 9 --fresh
+//       -> keeps account tester9 but gives it a NEW copy of the project. The ledger cannot
+//          delete anything, so the old copy(s) are archived (kept for the record, hidden
+//          from the participant's active list) and the new one gets the id conf-9-2, -3, ...
+const args = process.argv.slice(2);
+const FRESH = args.includes('--fresh');
+const n = Number(args.find(a => !a.startsWith('--')) || 1);
 if (!Number.isInteger(n) || n < 1 || n > 99) {
-    console.error('Usage: node scripts/seed-usertest.js <participant number 1-99>');
+    console.error('Usage: node scripts/seed-usertest.js <participant number 1-99> [--fresh]');
     process.exit(1);
 }
 
@@ -88,12 +94,24 @@ async function main() {
     await account('tester');
     const E = (k) => PEOPLE[k].email;
 
-    const pid = `conf-${n}`;
+    let pid = `conf-${n}`;
     const exists = await anita.call('GET', `/projects/${pid}`);
     if (exists.status === 200) {
-        console.log(`\nProject ${pid} already exists, so participant ${n} was already prepared.`);
-        console.log(`Use the next number for a fresh copy: node scripts/seed-usertest.js ${n + 1}`);
-        return;
+        if (!FRESH) {
+            console.log(`\nProject ${pid} already exists, so participant ${n} was already prepared.`);
+            console.log(`For a new copy for the same participant: node scripts/seed-usertest.js ${n} --fresh`);
+            console.log(`Or use the next number:                   node scripts/seed-usertest.js ${n + 1}`);
+            return;
+        }
+        // Archive every earlier copy and find the first free id.
+        console.log('\nEarlier copies');
+        for (let k = 1; ; k++) {
+            const id = k === 1 ? `conf-${n}` : `conf-${n}-${k}`;
+            const r = await anita.call('GET', `/projects/${id}`);
+            if (r.status !== 200) { pid = id; break; }
+            if (r.data && r.data.status === 'archived') { console.log(`  = ${id} already archived`); continue; }
+            await step(`archive ${id}`, anita.call('DELETE', `/projects/${id}`));
+        }
     }
 
     console.log('\nProject: Conference Website');
