@@ -1,33 +1,61 @@
 \chapter{Related Work}
 \label{ch:related}
 
-\section{Fabric and IPFS in Construction}
+The centralized platforms briefly introduced in \Cref{sec:traditional-pm} are mature and widely used, so one may ask whether software project management still needs new tools. This chapter argues that it does for one specific guarantee: an auditable, tamper-evident history of project and task changes that does not depend on trusting a single provider. It reviews the prior work that addresses this guarantee with blockchain technology and uses it to position the contribution of the thesis.
+
+% ─────────────────────────────────────────────
+\section{Decentralized Data Management with Hyperledger Fabric and IPFS}
 \label{sec:adel}
 
-The work closest to this thesis is the system of \textcite{adel2023} for construction projects. A construction project involves several independent companies, such as contractors, architects and engineers, who share task data and documents and need a record of changes that no single party controls. Adel et al.\ store task and progress records on Hyperledger Fabric and large files such as drawings and reports on IPFS, with only the CID kept on the ledger. They also use Fabric channels and private data to limit what each party can see.
+The work closest to the proof-of-concept developed for this thesis is that of \textcite{adel2023}, who propose a decentralized data management system for the construction industry built on Hyperledger Fabric and IPFS. Their setting has the same structure as the one addressed here: a construction project involves several independent parties (contractors, architects, engineers) who share task metadata and documents and need a verifiable, tamper-evident record of changes without a central authority.
 
-ChainBoard follows the same split between on-chain metadata and off-chain files. The difference is the domain. A construction task is a physical milestone with drawings and permits, while a software task is an issue with a priority, an assignee and a short to-do, in-progress, done workflow. Software teams are also used to tools like Jira and expect a similar interface. These differences shape the data model and the user interface of ChainBoard.
+The authors of this paper separate the data in the same way as done in ChainBoard. Hyperledger Fabric stores structured metadata and the task and progress records on-chain, which gives an immutable history of updates, and large binary files such as drawings, images and documents are stored on IPFS and referenced from the ledger by their CIDs. Large files therefore stay out of the blockchain state, and every file reference is still bound cryptographically to the exact content of the file. They also use Fabric channels and private data collections to restrict some information to subsets of participants, and the ledger state changes only through chaincode functions that handle project updates, task assignments and asset tracking. Their users interact with the network through the command line and a serverless cloud function, not through a graphical interface.
 
+This paper targets construction, where the task model (physical progress milestones, drawings, regulatory documents) is very different from the software task model addressed here (issues, priorities, status transitions in a to-do, in-progress, done workflow, artifacts close to the code). However, the proposed architecture is very similar to that of ChainBoard.
+
+% ─────────────────────────────────────────────
 \section{Blockchain-Based Project Management}
 \label{sec:related-pm}
 
-Reviews of the field find that blockchain is used in project management mostly where several parties must coordinate and check each other's work, and that outside construction most systems are still prototypes~\cite{noteboom2026coordination}. Three systems are close to ChainBoard.
+Several reviews have surveyed the use of blockchain in project management. \textcite{sonmez2021review} review the use cases proposed in the literature and derive a decision framework for designing such systems. \textcite{noteboom2026coordination} analyze 29 studies and find that adoption is strongest where coordination between several parties and verification by several parties matter most, as in integration, communication, quality and stakeholder management, and that outside construction it is still mostly conceptual or experimental. \textcite{seru2025design} reviews 58 publications and finds that nearly 70\% of them are design-science studies, which build and evaluate a prototype, while fewer than 10\% rely on an explicit theory. This thesis is also a design-science study, since it builds a prototype and evaluates it.
 
-\textcite{batista2021} built a project management tool on Hyperledger Fabric in a master's thesis. Its chaincode handles projects, users, tasks with dependencies, timesheets and an automatic risk analysis, and every user has their own Fabric identity. It offers an API but no user interface, and users cannot verify a history themselves. In load tests on one laptop it reached at most 41.6 write and 159.1 read transactions per second.
+\paragraph*{Systems on Hyperledger Fabric.} The proposal closest to ChainBoard is that of \textcite{batista2021}, a proof-of-concept project management tool built on Hyperledger Fabric in a master's thesis. Its aims are to give clients and other external stakeholders the same ``single source of truth'' as managers and developers, and to make audits easier. Its Node.js chaincode is organized into five smart contracts for projects, users, tasks with dependencies, timesheets approved by managers, and an automated risk analysis that detects late projects and tasks, budgets close to their limit, and developers with too many or too few tasks. Every user receives a Fabric identity from the certificate authority, and the system uses CouchDB to query records by field value. The work provides an API but no user interface, and its evaluation measures performance only.
 
-Scrum-Chain~\cite{silva_scrumchain} records the Scrum cycle (backlog, sprints and tasks) in Solidity contracts on an Ethereum test network. Users sign every action with the MetaMask wallet, and the data is also copied to a PostgreSQL database, which the interface reads. It is one of the few such systems tested with users: ten student teams used it for several sprints, rated it positively and named the audit trail as its most useful feature, while the wallet was the main source of problems.
+\paragraph*{Agile and Scrum on blockchain.} ChainAgile~\cite{qureshi2024chainagile} is aimed at distributed Scrum teams. Smart contracts on a private Ethereum network manage the sprint backlog, user stories, requirement verification, acceptance tests and payments, with automatic penalties for late payments and missed deadlines, and IPFS provides off-chain storage. Scrum-Chain~\cite{silva_scrumchain} records the events of the Scrum cycle (backlog, team, sprints and tasks) through four Solidity contracts. The contracts run on an Ethereum test network, so the system was evaluated in a realistic setting but not deployed in production. Scrum-Chain writes every operation both to a PostgreSQL database and to the blockchain, and users sign every transaction with the MetaMask wallet. It is one of the few such systems evaluated with users: ten student teams used it for a practical project over several sprints. In the questionnaires, 75\% rated the experience as excellent and 25\% as good, and the audit trail was named as its most useful feature. The main problems reported were the wallet integration, server errors and the number of steps needed for simple actions.
 
-ChainAgile~\cite{qureshi2024chainagile} supports distributed Scrum teams on a private Ethereum network, with contracts for user stories, acceptance tests and payments, and IPFS for files.
+Other works address narrower problems. \textcite{gupta2021allocation} use smart contracts to allocate tasks to the members of distributed software teams through bidding. \textcite{rocky2021requirements} propose a hierarchical permissioned blockchain that controls which stakeholders may change which requirements in an agile project and keeps a traceable record of every change. Closest to the guarantee pursued in this thesis, \textcite{demi2024traceability} propose a blockchain-based framework that records what was created or changed in a software project, how, when and by whom, and collect feedback on it from experts.
 
-\section{Tamper-Evident Audit Logs}
+\paragraph*{Differences from ChainBoard.} On Ethereum, every user needs a wallet to sign transactions and must pay a fee for each of them. ChainBoard does not have this burden: it runs on a permissioned Fabric network, which has no cryptocurrency and no transaction fees, and people sign in with a normal account while the backend submits the transactions. Some of the systems above also go further than ChainBoard: Batista gives every person their own Fabric identity, and ChainAgile and Scrum-Chain support the full Scrum framework. Both points are discussed among the limitations of our proposal.
+
+% ─────────────────────────────────────────────
+\section{Other Blockchain-Based Data Management Systems}
+\label{sec:other-blockchain}
+
+Blockchain-based data management has been explored in several domains, for example for supply chain traceability and healthcare records. These domains have the same basic requirement as the work for the construction industry~\cite{adel2023} and for this thesis: several parties who do not trust each other need a shared, verifiable history of state changes. Such systems usually prefer permissioned blockchains: the participants are known in advance, the required throughput is moderate, and organizations often need to keep some data private from each other. Their data models are quite different from project management (they may track the custody chain of a physical product, for instance, instead of the lifecycle of a software task), but they use the same pattern of anchoring off-chain content on an immutable ledger through content-addressed identifiers.
+
+The Fabric-plus-IPFS pattern also appears in recent work on document management. \textcite{wen2024sharing} store data on IPFS and record its CID, its metadata and a log of data operations on a Fabric ledger, and use the private data feature of Fabric to share data between groups of users. Calderón et al.~\cite{calderon2026gestion} build a prototype for the long-term preservation of electronic documents on Fabric and an IPFS cluster, and report that the transaction times of Fabric stay low and constant as the chain grows. In construction, \textcite{das2022document} propose a blockchain-based document management framework, which \textcite{adel2023} discuss among their prior work. \textcite{hushare2025practices} draw software engineering recommendations from building a Fabric prototype for supply chain traceability. None of these works targets software project management, but together they show that anchoring off-chain files to a permissioned ledger is an established design.
+
+% ─────────────────────────────────────────────
+\section{Tamper-Evident Logging}
 \label{sec:related-logging}
 
-Blockchains have also been used just to protect audit logs. BlockAudit~\cite{ahmad2018blockaudit}, for example, turns the entries of a normal audit log into transactions on Hyperledger. In such systems the log is separate from the data it describes. In ChainBoard the ledger is the only place where the project data is stored, so the history and the data cannot drift apart.
+Tamper-evident logging has been studied independently of blockchains. \textcite{schneier1999secure} and \textcite{crosby2009tamper} study logs whose integrity can be checked after an attack, and Certificate Transparency~\cite{rfc6962} applies the approach at internet scale. These systems protect a \emph{log}, usually a single append-only sequence kept by one operator and checked by auditors. ChainBoard differs in two ways. Its history is kept by a replicated ledger that several organizations operate under consensus, and there is a separate history \emph{for each task and project}, tied to the object the user is looking at.
 
-\section{Positioning}
+Blockchains have also been used directly to store audit logs. BlockAudit~\cite{ahmad2018blockaudit} turns the entries of a conventional audit log into transactions on Hyperledger and measures the cost in latency, network size and payload size. \textcite{belchior2020audits} store audit logs on a permissioned consortium blockchain and run automated audits over them. These systems protect a general-purpose log, while in ChainBoard the ledger is the primary store of the project data itself, so the audit trail cannot drift apart from the data it describes.
+
+% ─────────────────────────────────────────────
+\section{Performance of Hyperledger Fabric}
+\label{sec:related-performance}
+
+The performance of Fabric has been studied in its own right. \textcite{thakkar2018performance} benchmark the platform and show that throughput and latency depend strongly on the block size and timeout of the ordering service, the endorsement policy, the number of concurrent clients, and conflicts between transactions that touch the same keys. These results shaped the data model of this thesis, which gives every account, project and task its own key so that unrelated writes do not conflict. They also determine how its measurements should be read: the figures describe one machine under a synthetic load, and show orders of magnitude and the behavior under contention, not the limits of the platform.
+
+The project management tool of \textcite{batista2021} gives a point of comparison for a similar workload. In load tests through its API on a single laptop, all read requests succeeded up to 400 concurrent requests, while the success rate of writes fell from 100\% at 200 concurrent requests to 65\% at 400. A direct benchmark of the chaincode with Hyperledger Caliper reached at most 41.6 write and 159.1 read transactions per second, with read latencies around 60\,ms and write latencies between 3.5 and 12.4\,s. Batista attributes most of the slowdown to the communication between client and network and to the hardware, and concludes that the tool is adequate for a small or medium-sized company.
+
+% ─────────────────────────────────────────────
+\section{Positioning of This Thesis}
 \label{sec:positioning}
 
-\Cref{tab:related} compares ChainBoard with the systems above. ChainBoard is not the most complete of them: it has no sprints, and unlike Batista's tool it does not give every person a Fabric identity. What it adds is the combination of a familiar board interface without wallets or fees, permissions checked by the chaincode, the ledger as the only data store, and an audit check that ordinary users can run and repeat offline.
+Traditional platforms such as Trello, Jira, Asana, GitHub Projects and GitLab offer mature project management functions but no cryptographic guarantee that the history is intact: where audit logs exist, the provider controls them and could in principle alter them without anyone being able to check. \textcite{adel2023} show that a Fabric-plus-IPFS architecture can close this gap, but in a specific domain whose data model does not carry over to software project management. Of the blockchain-based project management systems reviewed above, those on Ethereum depend on the Ethereum model of accounts and transactions, which in Scrum-Chain means wallets and fees~\cite{qureshi2024chainagile,silva_scrumchain}; Scrum-Chain also keeps a second copy of the data outside the ledger~\cite{silva_scrumchain}; and the Fabric-based tool of \textcite{batista2021} stops at an API, without an interface or a way for users to check a history. \Cref{tab:related} summarizes these differences.
 
 \begin{table}[!htb]
     \centering
@@ -39,11 +67,13 @@ Blockchains have also been used just to protect audit logs. BlockAudit~\cite{ahm
         \midrule
         Adel et al.~\cite{adel2023} & Fabric + IPFS & no (CLI) & yes & yes & no \\
         Batista~\cite{batista2021} & Fabric & no & yes & yes & no \\
-        Scrum-Chain & Ethereum & yes & no & no & no \\
-        ChainAgile & Ethereum + IPFS & yes & no & yes & no \\
+        Scrum-Chain~\cite{silva_scrumchain} & Ethereum & yes & no & no & no \\
+        ChainAgile~\cite{qureshi2024chainagile} & Ethereum + IPFS & yes & no & yes & no \\
         ChainBoard & Fabric + IPFS & yes & yes & yes & yes \\
         \bottomrule
     \end{tabular}
     \caption{ChainBoard compared with related systems.}
     \label{tab:related}
 \end{table}
+
+ChainBoard adapts the validated Fabric-plus-IPFS pattern to software project management. Projects, tasks, role-based membership and status transitions are chaincode-governed state, and the system keeps the functions that users of Trello or Jira expect: task boards, assignments, priorities and file attachments. Beyond the data model, it adds three things not covered by the works above: permissions enforced by the chaincode itself according to member roles, user accounts recorded as ledger transactions, and an audit verification whose result can be re-checked offline, in the spirit of tamper-evident logging. It also states where these guarantees end. \Cref{ch:method} describes the design and implementation.

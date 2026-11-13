@@ -34,22 +34,22 @@ Software project management platforms in wide use today, such as Trello, Jira, A
 
 The system, named ChainBoard, models accounts, projects and tasks as chaincode-governed state on a Fabric ledger, and every change is permanently recorded in an immutable transaction history. The chaincode itself enforces who may do what, according to the roles of owner, administrator and contributor, so that the permission rules do not depend on the backend or the user interface. Files attached to tasks are stored on IPFS and referenced on-chain by their content identifiers. A browser frontend offers a familiar task board, and a verification procedure checks every record of a history against the ledger and produces a downloadable report with a digest chain that can be verified again offline.
 
-The prototype was evaluated on a real Fabric network with functional scenarios, permission tests for every role, deliberate manipulations of audit reports, 278 automated tests and a benchmark. All scenarios passed, every forbidden action was refused by the chaincode, and every manipulation was detected. A write takes about 2 seconds, mostly waiting for a block, and a read about 30 milliseconds.
+The prototype was evaluated on a real Fabric network with functional scenarios, permission tests for every role, deliberate manipulations of audit reports, 278 automated tests, a benchmark and a user study. All scenarios passed, every forbidden action was refused by the chaincode, and every manipulation was detected. A write takes about 2 seconds, mostly waiting for a block, and a read about 30 milliseconds. In a user study with ten participants, everyone completed all twelve tasks, and the System Usability Scale score was 86 out of 100, well above the usual average of 68.
 \end{abstract}
 
 \tableofcontents
 
-\include{revised/introduction}
+\include{chapters/introduction}
 
-\include{revised/background}
+\include{chapters/background}
 
-\include{revised/related}
+\include{chapters/related}
 
-\include{revised/method}
+\include{chapters/method}
 
-\include{revised/results}
+\include{chapters/results}
 
-\include{revised/conclusion}
+\include{chapters/conclusion}
 
 \appendix
 \crefalias{chapter}{appendix}
