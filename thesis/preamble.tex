@@ -110,7 +110,7 @@
 % the blurred background around a window (about 23.5% left/right, 4% top/bottom)
 % so that the window itself fills the width.
 \newcommand{\modalshot}[3]{%
-    \begin{figure}[tbp]
+    \begin{figure}[!htbp]
         \centering
         \IfFileExists{#1}%
             {\adjustbox{trim={.235\width} {.04\height} {.235\width} {.04\height},clip,width=0.66\textwidth}{\includegraphics{#1}}}%
@@ -119,7 +119,7 @@
         \label{#3}
     \end{figure}}
 \newcommand{\screenshot}[3]{%
-    \begin{figure}[tbp]
+    \begin{figure}[!htbp]
         \centering
         \IfFileExists{#1}%
             {\includegraphics[width=\textwidth]{#1}}%
