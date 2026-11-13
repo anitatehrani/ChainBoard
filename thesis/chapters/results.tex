@@ -109,7 +109,7 @@ Two more checks concern the acting person. A request whose body names a differen
 
 The audit verification is the main contribution of the thesis, so it was tested in two situations: on real histories that nobody had touched, and on downloaded reports that were changed on purpose.
 
-On untouched data, ``Verify audit trail'' was run on every task and project of the demonstration data. Each time, all records were found in committed blocks, and the offline verifier computed from the downloaded file the same head digest that the application had shown.
+On untouched data, the history check was run on every task and project of the demonstration data. Each time, all records were found in committed blocks, and the offline verifier computed from the downloaded file the same head digest that the application had shown.
 
 \Cref{tab:tamper} shows the manipulations. In every case the change was detected, and the verifier named the first record that no longer matched. The last row matters too: when the peer could not be reached, the records were marked ``not checked'' instead of ``missing'', so a network problem is not mistaken for tampering.
 
