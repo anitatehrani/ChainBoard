@@ -19,6 +19,7 @@ cd ~/fabric-samples/dpm-project/pm-frontend && npm install && npm run dev
 
 The chaincode functions changed signature when permissions were added, so after any chaincode change it is simplest to recreate the network with \texttt{./network.sh down}. Demonstration data (five accounts, four projects and their tasks) can be loaded with \texttt{npm run seed} in the backend folder.
 
+\clearpage
 \section{Tests and Benchmark}
 \label{app:tests}
 
@@ -29,17 +30,48 @@ cd pm-backend  && npm run benchmark   # needs the running network and backend
 npm run verify-audit -- audit-task-<id>.json   # offline check of a report
 \end{lstlisting}
 
-The benchmark writes its measurements to \texttt{benchmark-results.json} and \texttt{benchmark-results.csv}, from which \Cref{tab:benchmark} is filled in.
+The benchmark writes its measurements to two files, \texttt{benchmark-\allowbreak results.json} and \texttt{benchmark-\allowbreak results.csv}, from which \Cref{tab:benchmark} is filled in.
+
+\section{User Study Materials}
+\label{app:userstudy}
+
+The user study of \Cref{sec:results-usability} used the twelve tasks of \Cref{tab:usability-tasks} and the questionnaire below. Each participant received their own account and their own copy of the project ``Conference Website'', created by the seed script of the backend folder, which first archives the previous copy (\texttt{node scripts/seed-usertest.js --fresh} in the backend folder).
+
+\Cref{tab:questionnaire} lists the ten statements of the System Usability Scale (SUS)~\cite{brooke1996sus}, in the wording shown to the participants, and the two extra statements about the history check. All twelve were answered on a scale from 1 (strongly disagree) to 5 (strongly agree). Three open questions followed: ``What was the most confusing or annoying part?'', ``What did you like most?'' and ``Anything you would change, or other comments?''.
+
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \begin{tabular}{p{0.8cm}p{11.2cm}}
+        \toprule
+        S1& I think I would like to use this app often. \\
+        S2 & I found the app more complicated than it needs to be. \\
+        S3 & The app was easy to use. \\
+        S4 & I would need help from a technical person to use it. \\
+        S5 & The different functions fitted together well. \\
+        S6 & There was too much inconsistency in the app. \\
+        S7 & Most people would learn to use it very quickly. \\
+        S8 & I found the app awkward to use. \\
+        S9 & I felt confident using the app. \\
+        S10 & I had to learn a lot before I could get going. \\
+        \midrule
+        H1 & I understood what the result of ``Check that this history is genuine'' means. \\
+        H2 & Being able to check a task's history makes me trust it more. \\
+        \bottomrule
+    \end{tabular}
+    \caption{Questionnaire statements. S1--S10 form the SUS; H1 and H2 are the two extra statements about the history check.}
+    \label{tab:questionnaire}
+\end{table}
 
 \section{Summary of the REST API}
 \label{app:api}
 
 \Cref{tab:api} lists the main endpoints. All endpoints other than sign-in and sign-up require a valid session cookie, and state-changing requests are checked against the \texttt{Origin} and \texttt{Host} headers.
 
-\begin{table}[tb]
+\begin{table}[H]
     \centering
     \small
-    \begin{tabular}{p{1.3cm}p{5.6cm}p{5.4cm}}
+    \begin{tabular}{p{1.5cm}p{5.5cm}p{5.2cm}}
         \toprule
         Method & Path & Chaincode function \\
         \midrule
