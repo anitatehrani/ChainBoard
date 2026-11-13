@@ -1,7 +1,7 @@
 \chapter{Results}
 \label{ch:results}
 
-This chapter reports the experiments carried out on the prototype and uses them to answer the research questions. ChainBoard was evaluated in three ways. First, every function was exercised on a real Fabric network and the permission rules were tested with every role. Then the audit verification was tested on untouched histories and on reports manipulated on purpose. Finally, the speed of the system was measured with a benchmark. \Cref{tab:eval-overview} shows which research question each experiment answers.
+This chapter reports the experiments carried out on the prototype and uses them to answer the research questions. ChainBoard was evaluated in four ways. First, every function was exercised on a real Fabric network and the permission rules were tested with every role. Then the audit verification was tested on untouched histories and on reports manipulated on purpose. The speed of the system was measured with a benchmark. Finally, ten people used the prototype in a small user study. \Cref{tab:eval-overview} shows which research question each experiment answers.
 
 \begin{table}[htbp]
     \centering
@@ -14,6 +14,7 @@ This chapter reports the experiments carried out on the prototype and uses them 
         RQ2 & Permissions enforced by the chaincode & Every action tried with every role \\
         RQ3 & Verifiable audit trail & Untouched and manipulated histories \\
         RQ4 & Cost and limits & Benchmark, threat model \\
+        RQ1, RQ3 & Whether people can use the board and understand the history check & User study with ten participants \\
         \bottomrule
     \end{tabular}
     \caption{Overview of the evaluation.}
@@ -212,6 +213,8 @@ The benchmark script sends real requests through the backend, so every write goe
 \paragraph*{Contention.} When 8 clients edited the same task at once, only 1 edit was committed and the other 7 were rejected with an MVCC read conflict, in all three runs. The backend returns these as HTTP 409 so that the user can try again. This is the correct behavior of Fabric: only one change to a key can win in each block. It is also the reason why the data model gives every task, project and account its own key, so that people working on different tasks never block each other.
 
 \paragraph*{How to read these numbers.} Everything ran on one machine, with the load generator sharing the processor with the network, so the figures show orders of magnitude, not the limits of Fabric. They are in line with the factors identified by \textcite{thakkar2018performance}, mainly the block settings of the orderer and conflicts on the same key. A conventional database behind the same API would be faster; the extra time is the price of a history that no single administrator can rewrite. The 2-second wait could be shortened by lowering the batch timeout, at the cost of more and smaller blocks. For a team tool, where a person changes a task every few minutes, a write time of about 2 seconds is noticeable but acceptable, especially because the interface updates the card immediately and confirms in the background.
+
+\input{chapters/user-study}
 
 \section{Threat Model}
 \label{sec:results-threats}

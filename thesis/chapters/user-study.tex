@@ -1,62 +1,86 @@
-% NOT included in main.tex yet. After the user test, paste this section back
-% into chapters/results.tex, just before \section{Threat Model}.
+% User study. Included from revised/results.tex, just before the Threat Model.
 
 \section{User Study}
 \label{sec:results-usability}
 
-To find out whether people can actually use ChainBoard and understand its audit check, I ran a small usability study.
+The experiments above show that ChainBoard works and that its history cannot be changed unnoticed. They do not show whether people can use it, or whether they understand what the history check tells them. To find out, I ran a small usability study with ten participants.
 
-\paragraph{Participants and procedure.} \textit{tbd} people took part (\textit{tbd} students and \textit{tbd} developers; \textit{tbd} had used Trello or Jira before, \textit{tbd} had used a blockchain application). Each session took about 25 minutes on my laptop. Participants followed a printed sheet of 12 tasks in a prepared project (\Cref{tab:usability-tasks}) and were asked to think aloud. I did not help unless someone was stuck for more than two minutes, which I counted as a failure. Afterwards they filled in the System Usability Scale (SUS)~\cite{brooke1996sus} and two extra statements about the audit trail, on the same 1--5 scale, plus three open questions.
+\paragraph*{Participants.} Ten people took part. The first participant was my supervisor, who already knew the aims of the project; her session served as a pilot. The other nine were university students and software developers who had not seen ChainBoard before. Eight of the ten participants had used a task board such as Trello or Jira; the other two had not.
+
+\paragraph*{Procedure.} Each session took between 10 and 15 minutes, including the questionnaire, on my laptop, with ChainBoard running on the local Fabric network described in \Cref{sec:results-setup}. Every participant received their own account and their own copy of a prepared project, ``Conference Website'', created through the normal API by a seed script, so that all sessions started from the same state and no participant saw the changes made by another. The project contained five tasks: one overdue and unassigned, one already finished by another member, one assigned to another member and in progress, and two in the background. The participant was a contributor of the project. Participants followed a printed sheet of twelve tasks (\Cref{tab:usability-tasks}) and were asked to think aloud. I did not help unless someone was stuck for more than two minutes, which I would have counted as a failure. After T11 and T12, I also asked the participant to explain the result in their own words. At the end, participants filled in the System Usability Scale (SUS)~\cite{brooke1996sus}, two extra statements about the history check on the same 1--5 scale, and three open questions.
 
 \begin{table}[tb]
     \centering
     \small
-    \begin{tabular}{p{0.5cm}p{6.6cm}rr}
+    \begin{tabular}{p{0.6cm}p{7.4cm}r}
         \toprule
-        \# & Task & Success & Median time (s) \\
+        \# & Task & Success \\
         \midrule
-        T1 & Sign in & \textit{tbd}/\textit{n} & \textit{tbd} \\
-        T2 & Open the project and its board & \textit{tbd}/\textit{n} & \textit{tbd} \\
-        T3 & Find the overdue task & \textit{tbd}/\textit{n} & \textit{tbd} \\
-        T4 & Assign it to yourself & \textit{tbd}/\textit{n} & \textit{tbd} \\
-        T5 & Move it to In progress & \textit{tbd}/\textit{n} & \textit{tbd} \\
-        T6 & Add a comment & \textit{tbd}/\textit{n} & \textit{tbd} \\
-        T7 & Create a task with priority and due date & \textit{tbd}/\textit{n} & \textit{tbd} \\
-        T8 & Attach a file & \textit{tbd}/\textit{n} & \textit{tbd} \\
-        T9 & Mark the task Done & \textit{tbd}/\textit{n} & \textit{tbd} \\
-        T10 & Find who completed another task, and when & \textit{tbd}/\textit{n} & \textit{tbd} \\
-        T11 & Verify the audit trail and explain the result & \textit{tbd}/\textit{n} & \textit{tbd} \\
-        T12 & Try to change another person's task, explain why it fails & \textit{tbd}/\textit{n} & \textit{tbd} \\
+        T1 & Sign in & 10/10 \\
+        T2 & Open the project and its board & 10/10 \\
+        T3 & Find the overdue task & 10/10 \\
+        T4 & Assign it to yourself & 10/10 \\
+        T5 & Move it to In progress & 10/10 \\
+        T6 & Add a comment & 10/10 \\
+        T7 & Create a task with priority and due date & 10/10 \\
+        T8 & Attach a file & 10/10 \\
+        T9 & Mark the task Done & 10/10 \\
+        T10 & Find who completed another task, and when & 10/10 \\
+        T11 & Check the history of a task and explain the result & 10/10 \\
+        T12 & Try to change another person's task and explain why it fails & 10/10 \\
         \bottomrule
     \end{tabular}
-    \caption{Tasks of the user study, success rate and median completion time.}
+    \caption{Tasks of the user study and number of participants who completed each one.}
     \label{tab:usability-tasks}
 \end{table}
 
-\paragraph{Task success.} \ag{Two or three sentences: overall success rate, which tasks were hardest and why (use what people said while thinking aloud).} For T11 and T12 a task counted as successful only if the participant could also explain the result in their own words, for example that the history is stored on a ledger and cannot be changed, or that only the assignee may change a task.
-
-\paragraph{SUS score.} Each SUS answer was converted to a 0--100 score in the standard way: for odd items subtract 1 from the answer, for even items subtract the answer from 5, add the ten values and multiply by 2.5. \Cref{tab:sus} gives the results. An average SUS score is around 68~\cite{lewis2018sus}, so \ag{compare the mean with 68 in one sentence}.
+\paragraph*{Changes during the study.} The study was formative: the first two sessions were used to find problems, and the interface was improved before the remaining eight (\Cref{tab:usability-versions}).
 
 \begin{table}[tb]
     \centering
     \small
-    \begin{tabular}{lrrrr}
+    \begin{tabular}{p{1.6cm}p{10.4cm}}
+        \toprule
+        Sessions & Version of the interface \\
+        \midrule
+        1--2 & Original prototype. \\
+        3--10 & Improved version: create-task card, history check in plain language, explanations for refused actions, new layout with sidebar, project tabs and task window, editing in place, new light theme. \\
+        \bottomrule
+    \end{tabular}
+    \caption{Versions of the interface used in the sessions.}
+    \label{tab:usability-versions}
+\end{table}
+
+In the first session, the participant needed some time to find how to set the priority and the due date of a new task (T7), and suggested improving task creation. The create-task bar showed only a title field and an ``Add task'' button, and the other fields were hidden behind a small ``More options'' link. I replaced the bar with a single ``Add new task'' button that opens a card with a heading and labelled fields: the title, the priority as three visible buttons, the due date and an optional description. The task identifier is now always generated automatically.
+
+The second session revealed three problems. First, the participant found the layout unappealing and hard to follow, because the application consisted of separate pages for the dashboard, the project, the board and each task. Second, in T12 the change to another person's task was refused without any message, and the participant could not tell why; in the questionnaire they wrote that when they could not assign the task, ``it wasn't any error''. Third, the participant did not understand what the button ``Verify audit trail'' did, because its name and its result used technical terms.
+
+I addressed these problems as follows. For the layout, a sidebar now lists the person's projects, so switching project takes one click from anywhere, and each project has a header with two tabs, ``Board'' and ``Members and history''. A task opens in a window over the board instead of on its own page: the status is shown as three buttons under the title, priority, due date, assignee and identifier are on one line, and the description, files, comments and activity follow below. The separate ``Edit'' mode was removed; title, description, priority and due date are changed in place, and each change is saved as its own transaction. For refused actions, when a person tries to change something they are not allowed to, the interface now shows why, for example ``This task is assigned to someone else. Only the assignee, an admin or the owner can change it.''; the chaincode still enforces the same rules. For the history check, the button became ``Check that this history is genuine'', with one sentence explaining what it does, and the result now reads, for example, ``This history is genuine: all 3 changes were found in the blockchain exactly as they are shown here''; the head digest is shown as a ``history code'' with a short explanation, and transaction identifiers moved under ``Technical details''. Finally, the grey light theme was replaced by a warm off-white background with near-black text, keeping all text at or above the contrast of 4.5:1 required by WCAG~2.1 level AA~\cite{wcag21}.
+
+\paragraph*{Task success.} All ten participants completed all twelve tasks without help (\Cref{tab:usability-tasks}). The tasks that caused hesitation were the ones about the history and the permissions. In session~2 the participant completed T12 but could not explain why the change was refused, which led to the explanations described above. Several participants paused at the button ``Check that this history is genuine'' before clicking it, also with the improved version, and one participant named it the most confusing part. So all tasks could be done, but the history check was the least obvious step.
+
+\paragraph*{SUS score.} Each answer was converted to a score from 0 to 100 in the standard way: for odd items subtract 1 from the answer, for even items subtract the answer from 5, add the ten values and multiply by 2.5~\cite{brooke1996sus}. \Cref{tab:sus} gives the results. The mean score of all ten participants is 86.0, well above the average of about 68 reported across many studies~\cite{lewis2018sus}. The two sessions with the original prototype scored 62.5 and 70.0, close to that average, while the eight sessions with the improved version scored 90.9 on average, with no score below 72.5. With only two sessions on the original version this difference is a direction, not a measured effect, and the pilot participant knew the project; but it agrees with the comments, which became much less critical after the changes.
+
+\begin{table}[tb]
+    \centering
+    \small
+    \begin{tabular}{p{6.6cm}rrrr}
         \toprule
         Measure & Mean & SD & Min & Max \\
         \midrule
-        SUS score (0--100) & \textit{tbd} & \textit{tbd} & \textit{tbd} & \textit{tbd} \\
-        ``I understood what the result of Verify audit trail means'' (1--5) & \textit{tbd} & \textit{tbd} & \textit{tbd} & \textit{tbd} \\
-        ``Being able to check a task's history makes me trust it more'' (1--5) & \textit{tbd} & \textit{tbd} & \textit{tbd} & \textit{tbd} \\
+        SUS score, all participants ($n=10$) & 86.0 & 14.1 & 62.5 & 100 \\
+        \quad original prototype, sessions 1--2 ($n=2$) & 66.3 & 5.3 & 62.5 & 70.0 \\
+        \quad improved version, sessions 3--10 ($n=8$) & 90.9 & 10.5 & 72.5 & 100 \\
+        ``I understood what the result of `Check that this history is genuine' means'' (1--5, $n=10$) & 3.8 & 1.5 & 1 & 5 \\
+        ``Being able to check a task's history makes me trust it more'' (1--5, $n=10$) & 4.6 & 0.5 & 4 & 5 \\
         \bottomrule
     \end{tabular}
-    \caption{Questionnaire results ($n = \textit{tbd}$).}
+    \caption{Questionnaire results. SD is the sample standard deviation.}
     \label{tab:sus}
 \end{table}
 
-\paragraph{What participants said.} \ag{Summarize the open answers and think-aloud notes in a short paragraph or a small table: the two or three most common problems, what people liked, and one or two short quotes.}
+\paragraph*{The history check.} The two extra statements tell different stories. Every participant agreed or strongly agreed that being able to check a task's history makes them trust it more (mean 4.6, no answer below 4). Understanding the result of the check was weaker and more spread out (mean 3.8): seven participants answered 4 or 5, but three answered 1 or 2, including two who used the improved version. The idea of a verifiable history is therefore valued, while the check itself is not yet self-explanatory. One participant asked for more abstraction: in their view, checking the history by hand and mentioning ``the blockchain'' in the interface is unnecessary, which suggests running the check automatically in the background and showing only its result.
 
-\paragraph*{Changes made after the first session.} The study was used to improve the prototype while it was running. In the first session, the participant did not find how to set the priority and the due date of a new task (T7): the create-task bar showed only a title field and an ``Add task'' button, and the other fields were hidden behind a small ``More options'' link. After this session the create-task card was redesigned. The board now shows a single ``Add new task'' button, which opens a card that has a heading, a labelled title field, the priority as three visible buttons (low, medium, high), a visible due-date field, an optional description, and a ``Create task'' button with a hint when the title is missing; the task identifier is always generated automatically and is no longer shown. The result of the audit verification was also rewritten in plain language. The button ``Verify audit trail'' became ``Check that this history is genuine'', with one sentence explaining what it does; the result says, for example, ``This history is genuine: all 3 changes were found in the blockchain exactly as they are shown here'', the head digest is shown as a ``history code'' with a short explanation, and transaction identifiers moved under ``Technical details''. The following sessions used the new version. \ag{Say how many sessions used the old and the new version, and whether T7 became easier.}
+\paragraph*{What participants said.} The most common complaint was about navigation: four participants mentioned switching between tabs or going back to the dashboard, two of them with the original prototype and two with the improved version, where they referred to the separate ``Board'' and ``Members and history'' tabs. One participant had trouble finding the button to assign a task to themselves, and one suggested changing the status directly on the cards of the board instead of opening the task. What participants liked most falls into three groups: the visible history of changes and comments (five participants), the permission rules, for example that ``I could not change the state of a task I do not own'' (three participants), and a clean and simple interface (three participants). One participant summarized it as follows: ``despite of the complicated logic behind it, it was really easy to use and understand''.
 
-\paragraph*{Changes made after the second session.} \ag{Start with what you observed in session 2 that led to these changes, e.g. where the participant got lost or hesitated.} After the second session the layout of the application was reorganized. A sidebar now lists the person's projects, so switching project takes one click from anywhere, and each project has a header with two tabs, ``Board'' and ``Members and history'', instead of separate pages and a ``Project settings'' button. A task no longer opens on its own page: it opens in a window over the board, with the status as three buttons under the title, a single line with priority, due date, assignee and task identifier, and below it the description, files, comments and activity. The separate ``Edit'' mode was removed; title, description, priority and due date are now changed in place and each change is saved as its own transaction. When a person tries to change something they are not allowed to, for example a task assigned to someone else, or to archive a task without being owner or admin, the interface now explains why instead of silently ignoring the click; the chaincode still enforces the same rules. Finally, the light theme was changed from grey to a warm off-white with near-black text and all text colours at or above the WCAG AA contrast of 4.5:1~\ag{cite WCAG 2.1}. \ag{Say which sessions used this version.}
-
-With \textit{tbd} participants the study cannot give precise numbers, and most participants were students, not professional teams. It does show whether the main ideas, a familiar board and a visible audit check, make sense to people who did not build the system.
+\paragraph*{Limitations.} Ten participants are enough to find the main usability problems but not to give precise numbers, and most of them were students rather than members of professional teams. The first participant knew the project in advance, and the interface changed during the study, so the sessions are not strictly comparable, and the comparison between the two versions rests on two sessions against eight. Since every participant completed every task, the tasks were probably too easy to separate good designs from weaker ones, and the questionnaire and the comments carry most of the information. The tasks were short and scripted, in a project prepared for the test, so the study says nothing about using ChainBoard for weeks in a real team. It does show that the two main ideas, a familiar board and a visible check of the history, make sense to people who did not build the system, and that the check itself is the part that most needs further work.
